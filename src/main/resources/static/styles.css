@@ -209,11 +209,17 @@ a {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 24px;
+    align-items: start;
 }
 
 .hotel-card {
     overflow: visible;
     padding: 0;
+    min-width: 0;
+}
+
+.hotel-card-expanded {
+    grid-column: span 2;
 }
 
 .hotel-card-image {
@@ -238,6 +244,7 @@ a {
 
 .hotel-card-body {
     padding: 16px;
+    min-width: 0;
 }
 
 .hotel-card-body h3 {
@@ -482,6 +489,11 @@ a {
 }
 
 .rooms-panel .data-table {
+    min-width: 100%;
+    width: 100%;
+}
+
+.hotel-card-expanded .rooms-panel .data-table {
     min-width: 560px;
 }
 
@@ -661,6 +673,10 @@ a {
         grid-template-columns: repeat(2, 1fr);
     }
 
+    .hotel-card-expanded {
+        grid-column: span 2;
+    }
+
     .stats-section {
         padding: 24px 16px;
     }
@@ -818,6 +834,10 @@ a {
 @media (max-width: 600px) {
     .hotel-cards {
         grid-template-columns: 1fr;
+    }
+
+    .hotel-card-expanded {
+        grid-column: span 1;
     }
 
     .toast {

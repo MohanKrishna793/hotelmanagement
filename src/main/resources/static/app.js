@@ -496,11 +496,21 @@ async function loadRoomsForHotel(hotelId) {
         const container = document.querySelector(`.hotel-card[data-hotel-id="${hotelId}"]`);
         if (!container) return;
 
+        document.querySelectorAll('.hotel-card.hotel-card-expanded').forEach(card => {
+            if (card !== container) {
+                card.classList.remove('hotel-card-expanded');
+                const openPanel = card.querySelector('.rooms-panel');
+                if (openPanel) openPanel.remove();
+            }
+        });
+
         const existing = container.querySelector('.rooms-panel');
         if (existing) {
             existing.remove();
+            container.classList.remove('hotel-card-expanded');
             return;
         }
+        container.classList.add('hotel-card-expanded');
 
         const detail = document.createElement('div');
         detail.className = 'rooms-panel';
