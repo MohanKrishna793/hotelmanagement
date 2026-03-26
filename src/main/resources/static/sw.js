@@ -1,7 +1,5 @@
-const CACHE_NAME = "smarthotel-static-v1";
+const CACHE_NAME = "smarthotel-static-v2";
 const ASSETS = [
-  "/",
-  "/index.html",
   "/styles.css",
   "/app.js",
   "/manifest.webmanifest",
@@ -33,6 +31,21 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
+
+  // For HTML/navigation requests, prefer network so mobile gets latest layout quickly.
+  if (event.request.mode === "navigate") {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+          return response;
+        })
+        .catch(() => caches.match(event.request).then((cached) => cached || caches.match("/index.html")))
+    );
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request).then((cached) => {
       if (cached) return cached;
