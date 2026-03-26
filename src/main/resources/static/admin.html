@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Smart Hotel Admin</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<header class="top-nav">
+    <div class="brand">SmartHotel</div>
+    <nav>
+        <a href="/index.html">Customer</a>
+        <a href="#dashboard" class="admin-nav-link">Dashboard</a>
+        <a href="#destinations" class="admin-nav-link">Destinations</a>
+        <a href="#hotels" class="admin-nav-link">Hotels</a>
+        <a href="#rooms" class="admin-nav-link">Rooms</a>
+        <a href="#guests" class="admin-nav-link">Guests</a>
+        <a href="#staff-management" class="admin-nav-link">Manage Staff</a>
+        <a href="#bookings" class="admin-nav-link">Bookings</a>
+    </nav>
+    <button type="button" class="secondary-btn" id="admin-logout-btn" style="display: none;">Logout</button>
+    <button class="primary-btn admin-nav-link" onclick="scrollToSection('bookings')" style="display: none;">Book a Stay</button>
+</header>
+
+<div id="admin-gate" class="panel panel-full" style="margin: 100px 10% 24px; max-width: 480px;">
+    <div class="panel-header"><h2>Admin access required</h2></div>
+    <p style="margin-bottom: 16px; opacity: 0.9;">Log in with an admin account to manage the dashboard.</p>
+    <a href="/index.html" class="primary-btn" style="display: inline-block; text-decoration: none;">Go to login</a>
+</div>
+
+<main id="admin-main" style="display: none;">
+<section class="hero" id="dashboard">
+    <div class="hero-overlay"></div>
+    <div class="hero-content">
+        <h1>Welcome to SmartHotel</h1>
+        <p>Manage rooms, guests and bookings in real-time with a modern, cloud-based backend.</p>
+        <div class="hero-actions">
+            <button class="primary-btn" onclick="loadDashboard()">Refresh Dashboard</button>
+            <button class="secondary-btn" onclick="scrollToSection('rooms')">View Rooms</button>
+        </div>
+    </div>
+</section>
+
+<section class="stats-section">
+    <div class="stat-card">
+        <h3>Total Rooms</h3>
+        <p id="stat-total-rooms">-</p>
+    </div>
+    <div class="stat-card">
+        <h3>Available Rooms</h3>
+        <p id="stat-available-rooms">-</p>
+    </div>
+    <div class="stat-card">
+        <h3>Total Guests</h3>
+        <p id="stat-total-guests">-</p>
+    </div>
+    <div class="stat-card">
+        <h3>Active Bookings</h3>
+        <p id="stat-total-bookings">-</p>
+    </div>
+    <div class="stat-card">
+        <h3>Revenue (₹)</h3>
+        <p id="stat-revenue">-</p>
+    </div>
+    <div class="stat-card">
+        <h3>Occupancy %</h3>
+        <p id="stat-occupancy">-</p>
+    </div>
+</section>
+
+<section id="reports" class="panel panel-full">
+    <div class="panel-header">
+        <h2>Reports</h2>
+        <button class="secondary-btn" onclick="loadReports()">Refresh</button>
+    </div>
+    <p id="reports-summary">Revenue and occupancy from confirmed bookings.</p>
+</section>
+
+<section id="audit" class="panel panel-full">
+    <div class="panel-header">
+        <h2>Audit Log</h2>
+        <button class="secondary-btn" onclick="loadAuditLogs()">Refresh</button>
+    </div>
+    <table class="data-table">
+        <thead><tr><th>Time</th><th>User</th><th>Action</th><th>Entity</th><th>Details</th></tr></thead>
+        <tbody id="audit-log-body"></tbody>
+    </table>
+</section>
+
+<div class="main-grid">
+    <section id="destinations" class="panel">
+        <div class="panel-header">
+            <h2>Destinations</h2>
+            <button class="secondary-btn" onclick="loadDestinations()">Refresh</button>
+        </div>
+        <table class="data-table">
+            <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>City</th>
+                <th>Country</th>
+            </tr>
+            </thead>
+            <tbody id="destinations-table-body">
+            </tbody>
+        </table>
+        <h3>Add Destination</h3>
+        <form class="form-grid form-grid-admin" onsubmit="event.preventDefault(); createDestination();">
+            <input type="text" id="dest-name" class="form-input" placeholder="Name" required>
+            <input type="text" id="dest-city" class="form-input" placeholder="City" required>
+            <input type="text" id="dest-country" class="form-input" placeholder="Country" required>
+            <input type="text" id="dest-description" class="form-input" placeholder="Description">
+            <button type="submit" class="primary-btn">Save Destination</button>
+        </form>
+    </section>
+
+    <section id="hotels" class="panel">
+        <div class="panel-header">
+            <h2>Hotels</h2>
+            <button class="secondary-btn" onclick="loadHotels()">Refresh</button>
+        </div>
+        <table class="data-table">
+            <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>City</th>
+                <th>Country</th>
+            </tr>
+            </thead>
+            <tbody id="hotels-table-body">
+            </tbody>
+        </table>
+        <h3>Add Hotel</h3>
+        <form class="form-grid form-grid-admin" onsubmit="event.preventDefault(); createHotel();">
+            <input type="text" id="hotel-name" class="form-input" placeholder="Hotel name" required>
+            <input type="text" id="hotel-address" class="form-input" placeholder="Address">
+            <input type="text" id="hotel-city" class="form-input" placeholder="City" required>
+            <input type="text" id="hotel-country" class="form-input" placeholder="Country" required>
+            <select id="hotel-destination-id" class="form-input form-select" placeholder="Destination">
+                <option value="">No destination</option>
+            </select>
+            <input type="number" id="hotel-base-price" class="form-input" placeholder="Base price" step="0.01">
+            <button type="submit" class="primary-btn">Save Hotel</button>
+        </form>
+    </section>
+
+    <section id="rooms" class="panel">
+        <div class="panel-header">
+            <h2>Rooms</h2>
+            <button class="secondary-btn" onclick="loadRooms()">Refresh</button>
+        </div>
+        <table class="data-table">
+            <thead>
+            <tr>
+                <th>ID</th>
+                <th>Number</th>
+                <th>Type</th>
+                <th>Price</th>
+                <th>Available</th>
+            </tr>
+            </thead>
+            <tbody id="rooms-table-body">
+            </tbody>
+        </table>
+
+        <h3>Add Room</h3>
+        <form class="form-grid form-grid-admin" onsubmit="event.preventDefault(); createRoom();">
+            <input type="text" id="room-number" class="form-input" placeholder="Room Number (e.g. 101)" required>
+            <select id="room-type" class="form-input form-select">
+                <option value="DELUXE">Deluxe</option>
+                <option value="SUITE">Suite</option>
+                <option value="AC">AC</option>
+                <option value="NON-AC">Non-AC</option>
+                <option value="LUXURY">Luxury</option>
+                <option value="PREMIUM">Premium</option>
+                <option value="BUDGET">Budget</option>
+            </select>
+            <input type="number" id="room-price" class="form-input" placeholder="Price" step="0.01" required>
+            <label class="checkbox-inline">
+                <input type="checkbox" id="room-available" checked> Available
+            </label>
+            <button type="submit" class="primary-btn">Save Room</button>
+        </form>
+    </section>
+
+    <section id="guests" class="panel">
+        <div class="panel-header">
+            <h2>Guests</h2>
+        </div>
+        <h3>Add Guest</h3>
+        <form class="form-grid form-grid-admin" onsubmit="event.preventDefault(); createGuest();">
+            <input type="text" id="guest-name" class="form-input" placeholder="Name" required>
+            <input type="email" id="guest-email" class="form-input" placeholder="Email" required>
+            <input type="text" id="guest-phone" class="form-input" placeholder="Phone" required>
+            <button type="submit" class="primary-btn">Save Guest</button>
+        </form>
+    </section>
+
+    <section id="staff-management" class="panel">
+        <div class="panel-header">
+            <h2>Manage Staff</h2>
+            <button class="secondary-btn" onclick="loadStaffMembers()">Refresh</button>
+        </div>
+        <table class="data-table">
+            <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Role</th>
+                <th></th>
+            </tr>
+            </thead>
+            <tbody id="staff-table-body"></tbody>
+        </table>
+
+        <h3>Add Staff / Manager</h3>
+        <form class="form-grid form-grid-admin" onsubmit="event.preventDefault(); createStaffMember();">
+            <input type="text" id="staff-full-name" class="form-input" placeholder="Full name" required>
+            <input type="email" id="staff-email" class="form-input" placeholder="Email" required>
+            <input type="text" id="staff-phone" class="form-input" placeholder="Phone (optional)">
+            <input type="password" id="staff-password" class="form-input" placeholder="Temporary password" required>
+            <select id="staff-role" class="form-input form-select">
+                <option value="STAFF">Staff</option>
+                <option value="MANAGER">Manager</option>
+            </select>
+            <button type="submit" class="primary-btn">Create Account</button>
+        </form>
+    </section>
+
+    <section id="bookings" class="panel panel-full">
+        <div class="panel-header">
+            <h2>Bookings</h2>
+            <button class="secondary-btn" onclick="loadBookings()">Refresh</button>
+        </div>
+        <table class="data-table">
+            <thead>
+            <tr>
+                <th>ID</th>
+                <th>Room</th>
+                <th>Guest</th>
+                <th>Check-In</th>
+                <th>Check-Out</th>
+                <th>Status</th>
+                <th>Total</th>
+                <th></th>
+            </tr>
+            </thead>
+            <tbody id="bookings-table-body">
+            </tbody>
+        </table>
+
+        <h3>Create Booking</h3>
+        <form class="form-grid form-grid-admin create-booking-form" onsubmit="event.preventDefault(); createBooking();">
+            <div class="form-group form-group-full">
+                <label class="login-label">State <span class="required">*</span></label>
+                <select id="booking-state" class="form-input form-select" required>
+                    <option value="">Select State</option>
+                </select>
+            </div>
+            <div class="form-group form-group-full">
+                <label class="login-label">Hotel <span class="required">*</span></label>
+                <select id="booking-hotel-id" class="form-input form-select" required>
+                    <option value="">Select Hotel</option>
+                </select>
+            </div>
+            <div class="form-group form-group-full">
+                <label class="login-label">Room Type <span class="required">*</span></label>
+                <select id="booking-room-type" class="form-input form-select" required>
+                    <option value="">Select Room Type</option>
+                    <option value="DELUXE">Deluxe</option>
+                    <option value="SUITE">Suite</option>
+                    <option value="LUXURY">Luxury</option>
+                    <option value="PREMIUM">Premium</option>
+                    <option value="BUDGET">Budget</option>
+                </select>
+            </div>
+            <div class="form-group form-group-full">
+                <label class="login-label">Room <span class="required">*</span></label>
+                <select id="booking-room-id" class="form-input form-select" required>
+                    <option value="">Select Room</option>
+                </select>
+            </div>
+            <div class="form-group form-group-full">
+                <label class="login-label">Guest <span class="required">*</span></label>
+                <select id="booking-guest-id" class="form-input form-select" required>
+                    <option value="">Select Guest</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="login-label">Check-in <span class="required">*</span></label>
+                <input type="date" id="booking-checkin" class="form-input" required>
+            </div>
+            <div class="form-group">
+                <label class="login-label">Check-out <span class="required">*</span></label>
+                <input type="date" id="booking-checkout" class="form-input" required>
+            </div>
+            <div class="form-group">
+                <label class="login-label">Status</label>
+                <select id="booking-status" class="form-input form-select">
+                    <option value="BOOKED">Confirmed</option>
+                    <option value="CANCELLED">Cancelled</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="login-label">Total (₹)</label>
+                <input type="text" id="booking-total" class="form-input" readonly placeholder="Auto-calculated">
+            </div>
+            <div class="form-group form-group-full form-group-actions">
+                <button type="button" class="secondary-btn" onclick="showBillModal()">Generate Bill</button>
+                <button type="submit" class="primary-btn">Book Room</button>
+            </div>
+        </form>
+        <div id="bill-modal-backdrop" class="login-modal-backdrop" style="display: none;">
+            <div class="login-modal" id="bill-modal">
+                <h3 class="login-modal-title">Booking Bill</h3>
+                <div id="bill-modal-content"></div>
+                <div style="margin-top: 16px;">
+                    <button type="button" class="secondary-btn" onclick="window.print()">Print</button>
+                    <button type="button" class="primary-btn" onclick="closeBillModal()" style="margin-left: 8px;">Close</button>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+</main>
+
+<div id="toast" class="toast hidden"></div>
+
+<a href="#" id="whatsapp-float" class="whatsapp-float" target="_blank" rel="noopener noreferrer" aria-label="Chat on WhatsApp">
+    <span class="whatsapp-float-tooltip">First send: join watch-swept to connect. Then send the pre-filled message to chat.</span>
+    <span class="whatsapp-float-icon" aria-hidden="true"></span>
+</a>
+
+<script src="/admin.js"></script>
+</body>
+</html>
+

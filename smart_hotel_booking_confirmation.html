@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Booking Confirmation – Smart Hotel</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background-color: #0e0c0a;
+      font-family: 'Montserrat', sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .email-wrapper {
+      max-width: 620px;
+      margin: 0 auto;
+      background-color: #faf8f4;
+    }
+
+    /* ── HEADER ── */
+    .header {
+      background-color: #1a1410;
+      padding: 36px 48px 28px;
+      text-align: center;
+      border-bottom: 1px solid #3a2f22;
+    }
+
+    .logo-container {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-icon {
+      width: 44px; height: 44px;
+      border: 1.5px solid #c9a96e;
+      border-radius: 2px;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    .logo-name {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 22px; font-weight: 400;
+      color: #f5edd8; letter-spacing: 0.12em;
+      text-transform: uppercase; line-height: 1;
+    }
+
+    .logo-tagline {
+      font-size: 9px; letter-spacing: 0.25em;
+      color: #c9a96e; text-transform: uppercase; margin-top: 4px;
+    }
+
+    /* ── HERO ── */
+    .hero {
+      position: relative; height: 260px; overflow: hidden;
+    }
+
+    .hero-bg {
+      width: 100%; height: 100%;
+      background: linear-gradient(150deg, #1c1508 0%, #2e1f0e 50%, #0e0c0a 100%);
+      position: relative;
+    }
+
+    .hero-bg::before {
+      content: '';
+      position: absolute; inset: 0;
+      background-image:
+        repeating-linear-gradient(0deg, transparent, transparent 59px, rgba(201,169,110,0.06) 60px),
+        repeating-linear-gradient(90deg, transparent, transparent 59px, rgba(201,169,110,0.06) 60px);
+    }
+
+    .hero-overlay {
+      position: absolute; inset: 0;
+      background: linear-gradient(to top, rgba(10,8,5,0.8) 0%, transparent 60%);
+    }
+
+    .hero-image-placeholder {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 10px;
+    }
+
+    .hero-image-label {
+      font-size: 9px; letter-spacing: 0.3em;
+      color: #c9a96e; text-transform: uppercase; opacity: 0.5;
+    }
+
+    /* Success badge */
+    .hero-badge {
+      position: absolute;
+      top: 28px; right: 40px;
+      background: rgba(201,169,110,0.15);
+      border: 1px solid #c9a96e;
+      padding: 8px 16px;
+      display: flex; align-items: center; gap: 8px;
+    }
+
+    .badge-dot {
+      width: 7px; height: 7px;
+      background: #c9a96e; border-radius: 50%;
+    }
+
+    .badge-text {
+      font-size: 9px; letter-spacing: 0.25em;
+      color: #c9a96e; text-transform: uppercase;
+    }
+
+    .hero-content {
+      position: absolute;
+      bottom: 28px; left: 48px; right: 48px;
+    }
+
+    .hero-eyebrow {
+      font-size: 9px; letter-spacing: 0.3em;
+      color: #c9a96e; text-transform: uppercase; margin-bottom: 8px;
+    }
+
+    .hero-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 40px; font-weight: 300;
+      color: #f5edd8; line-height: 1.1;
+    }
+
+    .hero-title em { font-style: italic; color: #c9a96e; }
+
+    /* ── GOLD RULE ── */
+    .gold-rule {
+      display: flex; align-items: center;
+      padding: 24px 48px; background: #faf8f4;
+    }
+
+    .gold-rule::before, .gold-rule::after {
+      content: ''; flex: 1; height: 1px;
+      background: linear-gradient(to right, transparent, #c9a96e, transparent);
+    }
+
+    .gold-rule-diamond {
+      width: 6px; height: 6px;
+      background: #c9a96e; transform: rotate(45deg); margin: 0 16px;
+    }
+
+    /* ── BODY ── */
+    .body-content {
+      background: #faf8f4;
+      padding: 0 48px 40px;
+    }
+
+    .salutation {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 26px; font-weight: 400; color: #1a1410; margin-bottom: 6px;
+    }
+
+    .salutation span { font-style: italic; color: #8b6a3e; }
+
+    .intro-text {
+      font-size: 12.5px; font-weight: 300;
+      color: #6b5b4e; line-height: 1.9; margin-bottom: 32px;
+    }
+
+    /* ── BOOKING DETAILS CARD ── */
+    .booking-card {
+      border: 1px solid #e2d9c8;
+      margin-bottom: 32px;
+      overflow: hidden;
+    }
+
+    .booking-card-header {
+      background: #1a1410;
+      padding: 14px 24px;
+      display: flex; align-items: center; gap: 10px;
+    }
+
+    .booking-card-header-title {
+      font-size: 9px; letter-spacing: 0.3em;
+      color: #c9a96e; text-transform: uppercase;
+    }
+
+    .booking-ref-badge {
+      margin-left: auto;
+      background: rgba(201,169,110,0.15);
+      border: 1px solid rgba(201,169,110,0.4);
+      padding: 4px 12px;
+      font-size: 10px; letter-spacing: 0.15em;
+      color: #c9a96e; font-weight: 500;
+    }
+
+    .booking-row {
+      display: flex;
+      border-bottom: 1px solid #ede7da;
+    }
+
+    .booking-row:last-child { border-bottom: none; }
+
+    .booking-label {
+      width: 45%;
+      padding: 16px 24px;
+      font-size: 10.5px; font-weight: 600;
+      color: #3a2f22; letter-spacing: 0.08em;
+      text-transform: uppercase;
+      border-right: 1px solid #ede7da;
+      background: #f5f0e8;
+    }
+
+    .booking-value {
+      padding: 16px 24px;
+      font-size: 13px; font-weight: 300;
+      color: #1a1410;
+      font-family: 'Cormorant Garamond', serif;
+      letter-spacing: 0.03em;
+      display: flex; align-items: center;
+    }
+
+    /* Date row special styling */
+    .date-range-row {
+      background: #faf8f4;
+    }
+
+    .date-range-row .booking-label { background: #f0ece3; }
+
+    /* Total row */
+    .total-row .booking-label {
+      background: #1a1410;
+      color: #c9a96e;
+    }
+
+    .total-row .booking-value {
+      background: #f0ece3;
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 22px; font-weight: 400;
+      color: #1a1410;
+    }
+
+    /* ── STAY SUMMARY STRIP ── */
+    .stay-strip {
+      display: flex;
+      border: 1px solid #e2d9c8;
+      border-top: 2px solid #c9a96e;
+      margin-bottom: 36px;
+    }
+
+    .stay-item {
+      flex: 1;
+      padding: 18px 16px;
+      text-align: center;
+      border-right: 1px solid #e2d9c8;
+    }
+
+    .stay-item:last-child { border-right: none; }
+
+    .stay-item-label {
+      font-size: 9px; letter-spacing: 0.22em;
+      color: #c9a96e; text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .stay-item-value {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 20px; font-weight: 400; color: #1a1410;
+    }
+
+    .stay-item-sub {
+      font-size: 9.5px; color: #9a8878;
+      margin-top: 3px; font-weight: 300;
+    }
+
+    /* ── CTA ── */
+    .cta-section { text-align: center; margin-bottom: 40px; }
+
+    .cta-button {
+      display: inline-block;
+      background: #1a1410; color: #f5edd8;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 10px; font-weight: 600;
+      letter-spacing: 0.3em; text-transform: uppercase;
+      padding: 16px 44px; text-decoration: none;
+      border: 1px solid #3a2f22; position: relative;
+    }
+
+    .cta-button::before {
+      content: ''; position: absolute; inset: 3px;
+      border: 1px solid rgba(201,169,110,0.35);
+    }
+
+    .cta-sub {
+      margin-top: 10px; font-size: 10px;
+      color: #b0a090; letter-spacing: 0.08em;
+    }
+
+    /* ── CLOSING ── */
+    .closing {
+      border-top: 1px solid #e2d9c8; padding-top: 28px;
+    }
+
+    .closing-text {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 16px; font-style: italic;
+      color: #8b6a3e; margin-bottom: 20px; line-height: 1.7;
+    }
+
+    .signature {
+      font-size: 10.5px; color: #9a8878;
+      font-weight: 300; letter-spacing: 0.06em; line-height: 1.8;
+    }
+
+    .signature strong {
+      color: #1a1410; font-weight: 500;
+      display: block; font-size: 12px; margin-bottom: 2px;
+    }
+
+    /* ── FOOTER ── */
+    .footer {
+      background: #1a1410; padding: 28px 48px; text-align: center;
+    }
+
+    .footer-divider {
+      display: flex; align-items: center; margin-bottom: 20px;
+    }
+
+    .footer-divider::before, .footer-divider::after {
+      content: ''; flex: 1; height: 1px;
+      background: rgba(201,169,110,0.25);
+    }
+
+    .footer-ornament {
+      font-family: 'Cormorant Garamond', serif;
+      color: #c9a96e; font-size: 18px; margin: 0 12px; opacity: 0.6;
+    }
+
+    .footer-support {
+      font-size: 10px; color: #7a6a5a;
+      letter-spacing: 0.1em; margin-bottom: 8px;
+    }
+
+    .footer-email {
+      font-size: 11px; color: #c9a96e;
+      letter-spacing: 0.08em; text-decoration: none;
+    }
+
+    .footer-legal {
+      margin-top: 16px; font-size: 9px;
+      color: #4a3f35; letter-spacing: 0.08em; line-height: 1.8;
+    }
+  </style>
+</head>
+<body>
+<div class="email-wrapper">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="logo-container">
+      <div class="logo-icon">
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="8" cy="9" r="5" stroke="#c9a96e" stroke-width="1.2"/>
+          <circle cx="8" cy="9" r="2" fill="#c9a96e" opacity="0.5"/>
+          <path d="M12 12L19 19M19 19L16.5 16.5M19 19V16.5H16.5" stroke="#c9a96e" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="logo-text">
+        <div class="logo-name">Smart Hotel</div>
+        <div class="logo-tagline">Management &nbsp;·&nbsp; Est. 2024</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-bg">
+      <div class="hero-image-placeholder">
+        <!-- Replace this SVG with <img src="your-hotel-photo.jpg" style="width:100%;height:100%;object-fit:cover;"> -->
+        <svg width="72" height="72" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" style="opacity:0.18;">
+          <rect x="10" y="30" width="60" height="40" stroke="#c9a96e" stroke-width="1.2"/>
+          <rect x="20" y="20" width="40" height="10" stroke="#c9a96e" stroke-width="1.2"/>
+          <rect x="30" y="10" width="20" height="10" stroke="#c9a96e" stroke-width="1.2"/>
+          <rect x="18" y="42" width="8" height="8" stroke="#c9a96e" stroke-width="1"/>
+          <rect x="36" y="42" width="8" height="8" stroke="#c9a96e" stroke-width="1"/>
+          <rect x="54" y="42" width="8" height="8" stroke="#c9a96e" stroke-width="1"/>
+          <rect x="18" y="56" width="8" height="8" stroke="#c9a96e" stroke-width="1"/>
+          <rect x="36" y="56" width="8" height="8" stroke="#c9a96e" stroke-width="1"/>
+          <rect x="54" y="56" width="8" height="8" stroke="#c9a96e" stroke-width="1"/>
+          <rect x="33" y="58" width="14" height="12" stroke="#c9a96e" stroke-width="1.2"/>
+        </svg>
+        <span class="hero-image-label">Replace with hotel photography</span>
+      </div>
+    </div>
+    <div class="hero-overlay"></div>
+
+    <!-- Success badge -->
+    <div class="hero-badge">
+      <div class="badge-dot"></div>
+      <div class="badge-text">Confirmed</div>
+    </div>
+
+    <div class="hero-content">
+      <div class="hero-eyebrow">Booking Confirmation &amp; Bill</div>
+      <div class="hero-title">Your stay is<br/><em>Reserved</em></div>
+    </div>
+  </div>
+
+  <!-- GOLD RULE -->
+  <div class="gold-rule">
+    <div class="gold-rule-diamond"></div>
+  </div>
+
+  <!-- BODY -->
+  <div class="body-content">
+
+    <div class="salutation">Dear <span>Keerthana,</span></div>
+    <p class="intro-text">
+      Your booking has been confirmed. Please find your reservation details and
+      billing summary below. We look forward to welcoming you and ensuring an
+      exceptional stay.
+    </p>
+
+    <!-- Booking Details Card -->
+    <div class="booking-card">
+      <div class="booking-card-header">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <rect x="1" y="3" width="12" height="10" rx="0.5" stroke="#c9a96e" stroke-width="1"/>
+          <path d="M1 6h12" stroke="#c9a96e" stroke-width="1"/>
+          <path d="M4 1.5v3M10 1.5v3" stroke="#c9a96e" stroke-width="1" stroke-linecap="round"/>
+        </svg>
+        <span class="booking-card-header-title">Reservation Details</span>
+        <span class="booking-ref-badge">BK-1</span>
+      </div>
+
+      <div class="booking-row">
+        <div class="booking-label">Hotel</div>
+        <div class="booking-value">Pai Viceroy, Tirupati</div>
+      </div>
+
+      <div class="booking-row date-range-row">
+        <div class="booking-label">Check-in</div>
+        <div class="booking-value">
+          <span>Tuesday, 24 March 2026</span>
+        </div>
+      </div>
+
+      <div class="booking-row date-range-row">
+        <div class="booking-label">Check-out</div>
+        <div class="booking-value">Thursday, 26 March 2026</div>
+      </div>
+
+      <div class="booking-row total-row">
+        <div class="booking-label">Amount Due</div>
+        <div class="booking-value">₹20,000.00</div>
+      </div>
+    </div>
+
+    <!-- Stay Summary Strip -->
+    <div class="stay-strip">
+      <div class="stay-item">
+        <div class="stay-item-label">Duration</div>
+        <div class="stay-item-value">2</div>
+        <div class="stay-item-sub">Nights</div>
+      </div>
+      <div class="stay-item">
+        <div class="stay-item-label">Check-in</div>
+        <div class="stay-item-value">24 Mar</div>
+        <div class="stay-item-sub">From 12:00 PM</div>
+      </div>
+      <div class="stay-item">
+        <div class="stay-item-label">Check-out</div>
+        <div class="stay-item-value">26 Mar</div>
+        <div class="stay-item-sub">By 11:00 AM</div>
+      </div>
+      <div class="stay-item">
+        <div class="stay-item-label">Reference</div>
+        <div class="stay-item-value">BK-1</div>
+        <div class="stay-item-sub">Keep this safe</div>
+      </div>
+    </div>
+
+    <!-- CTA -->
+    <div class="cta-section">
+      <a href="#" class="cta-button">View My Booking</a>
+      <div class="cta-sub">Manage or modify your reservation online</div>
+    </div>
+
+    <!-- Closing -->
+    <div class="closing">
+      <div class="closing-text">
+        "We are honoured to be your host.<br/>
+        Every detail has been arranged for your comfort."
+      </div>
+      <div class="signature">
+        <strong>The Smart Hotel Management Team</strong>
+        Concierge &nbsp;·&nbsp; Reservations &nbsp;·&nbsp; Guest Relations
+      </div>
+    </div>
+
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <div class="footer-divider">
+      <div class="footer-ornament">✦</div>
+    </div>
+    <div class="footer-support">For any queries, our concierge team is at your service</div>
+    <a href="mailto:support@smarthotel.com" class="footer-email">support@smarthotel.com</a>
+    <div class="footer-legal">
+      This is an automated message. &nbsp;·&nbsp; Smart Hotel Management &nbsp;·&nbsp; All rights reserved.<br/>
+      You are receiving this because you made a booking with us.
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

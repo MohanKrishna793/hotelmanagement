@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>My Bookings – SmartHotel</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<header class="top-nav">
+    <div class="brand">SmartHotel</div>
+    <nav>
+        <a href="/index.html">Home</a>
+        <a href="/index.html#hotels">Hotels</a>
+        <a href="/my-bookings.html" class="active">My Bookings</a>
+        <a href="/admin.html">Admin</a>
+    </nav>
+    <div class="header-actions">
+        <button type="button" class="secondary-btn" id="header-login-btn">Login</button>
+        <button class="primary-btn" onclick="location.href='/index.html'">Book a Stay</button>
+    </div>
+</header>
+
+<main class="main-content" style="padding-top: 100px;">
+    <section id="dashboard" class="panel panel-full">
+        <div class="panel-header">
+            <h2>My Bookings</h2>
+            <button class="secondary-btn" onclick="loadMyBookings()">Refresh</button>
+        </div>
+        <div id="dashboard-auth-required" style="display: none;">
+            <p style="opacity: 0.9; margin-bottom: 16px;">Please log in to view your bookings.</p>
+            <a href="/index.html" class="primary-btn" style="display: inline-block; text-decoration: none;">Go to Login</a>
+        </div>
+        <div id="dashboard-content" style="display: none;">
+            <table class="data-table">
+                <thead>
+                <tr>
+                    <th>Booking ID</th>
+                    <th>Hotel Name</th>
+                    <th>Room Type</th>
+                    <th>Check-in Date</th>
+                    <th>Check-out Date</th>
+                    <th>Status</th>
+                    <th>Payment</th>
+                    <th>Total</th>
+                    <th>Actions</th>
+                </tr>
+                </thead>
+                <tbody id="my-bookings-body">
+                </tbody>
+            </table>
+            <p id="my-bookings-empty" style="display: none; opacity: 0.9;">No bookings yet. <a href="/index.html">Book a room</a> and they will appear here.</p>
+        </div>
+    </section>
+</main>
+
+<div id="toast" class="toast hidden"></div>
+
+<a href="#" id="whatsapp-float" class="whatsapp-float" target="_blank" rel="noopener noreferrer" aria-label="Chat on WhatsApp">
+    <span class="whatsapp-float-tooltip">First send: join watch-swept to connect. Then send the pre-filled message to chat.</span>
+    <span class="whatsapp-float-icon" aria-hidden="true"></span>
+</a>
+
+<script>
+const API_BASE = '';
+// Pre-fill greeting; user sends "join <sandbox>" first, then sends the greeting to get menu.
+const WHATSAPP_NUMBER = '14155238886';
+const WHATSAPP_SANDBOX_JOIN = 'join watch-swept';
+const WHATSAPP_GREETING = 'Hello 👋, I need help with hotel booking on Smart Hotel Management.';
+
+function initWhatsAppFloat() {
+    const el = document.getElementById('whatsapp-float');
+    if (!el || el.tagName !== 'A') return;
+    el.href = 'https://wa.me/' + WHATSAPP_NUMBER + '?text=' + encodeURIComponent(WHATSAPP_GREETING);
+    const tooltip = el.querySelector('.whatsapp-float-tooltip');
+    if (tooltip) tooltip.textContent = 'First send: ' + WHATSAPP_SANDBOX_JOIN + ' to connect. Then send the pre-filled message to chat.';
+}
+
+function showToast(message, isError = false) {
+    const toast = document.getElementById('toast');
+    if (!toast) return;
+    toast.textContent = message;
+    toast.className = 'toast show' + (isError ? ' error' : '');
+    setTimeout(() => { toast.className = 'toast hidden'; }, 3000);
+}
+
+function showActionLoader(message = 'Please wait...') {
+    let overlay = document.getElementById('payment-processing-overlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'payment-processing-overlay';
+        overlay.className = 'payment-processing-overlay';
+        overlay.innerHTML = `
+            <div class="payment-processing-card">
+                <span class="spinner" aria-hidden="true"></span>
+                <p id="payment-processing-text"></p>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+    }
+    const text = document.getElementById('payment-processing-text');
+    if (text) text.textContent = message;
+    overlay.style.display = 'flex';
+}
+
+function hideActionLoader() {
+    const overlay = document.getElementById('payment-processing-overlay');
+    if (overlay) overlay.style.display = 'none';
+}
+
+function updateHeader() {
+    const token = localStorage.getItem('jwt');
+    const btn = document.getElementById('header-login-btn');
+    if (btn) btn.textContent = token ? 'Logout' : 'Login';
+    if (btn) btn.onclick = () => {
+        if (token) {
+            localStorage.removeItem('jwt');
+            location.reload();
+        } else {
+            location.href = '/index.html';
+        }
+    };
+}
+
+async function loadMyBookings() {
+    const token = localStorage.getItem('jwt');
+    const authRequired = document.getElementById('dashboard-auth-required');
+    const content = document.getElementById('dashboard-content');
+    const tbody = document.getElementById('my-bookings-body');
+    const empty = document.getElementById('my-bookings-empty');
+
+    if (!token) {
+        if (authRequired) authRequired.style.display = 'block';
+        if (content) content.style.display = 'none';
+        return;
+    }
+    if (authRequired) authRequired.style.display = 'none';
+    if (content) content.style.display = 'block';
+
+    try {
+        const res = await fetch(`${API_BASE}/api/customer/bookings`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) {
+            if (res.status === 401) {
+                localStorage.removeItem('jwt');
+                location.reload();
+            }
+            return;
+        }
+        const bookings = await res.json();
+        if (!tbody) return;
+
+        tbody.innerHTML = '';
+        if (empty) empty.style.display = bookings.length ? 'none' : 'block';
+
+        bookings.forEach(b => {
+            const tr = document.createElement('tr');
+            const status = b.status || 'BOOKED';
+            const statusLabel = status === 'CANCELLED' ? 'Cancelled' : 'Confirmed';
+            const canCancel = status === 'BOOKED' || status === 'CHECKED_IN';
+            const payment = b.paymentStatus || 'PENDING';
+            const paymentClass = payment === 'PAID' ? 'status-paid' : (payment === 'PAY_AT_HOTEL' ? 'status-pay-hotel' : 'status-pending');
+            tr.innerHTML = `
+                <td>${b.id}</td>
+                <td>${b.room && b.room.hotel ? b.room.hotel.name : '-'}</td>
+                <td>${b.room ? b.room.type : '-'}</td>
+                <td>${b.checkInDate || '-'}</td>
+                <td>${b.checkOutDate || '-'}</td>
+                <td>${statusLabel}</td>
+                <td><span class="status-chip ${paymentClass}">${payment.replaceAll('_', ' ')}</span></td>
+                <td>₹${b.totalCost != null ? Number(b.totalCost).toFixed(2) : '-'}</td>
+                <td>${canCancel ? `<button type="button" class="secondary-btn cancel-my-booking-btn" data-booking-id="${b.id}">Cancel</button>` : ''}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+        tbody.querySelectorAll('.cancel-my-booking-btn').forEach(btn => {
+            btn.addEventListener('click', () => cancelMyBooking(btn.getAttribute('data-booking-id')));
+        });
+    } catch (e) {
+        console.error(e);
+        showToast('Failed to load bookings', true);
+    }
+}
+
+async function cancelMyBooking(bookingId) {
+    if (!bookingId || !confirm('Cancel this booking? The room will become available again.')) return;
+    const token = localStorage.getItem('jwt');
+    if (!token) {
+        showToast('Please log in to cancel', true);
+        return;
+    }
+    try {
+        showActionLoader('Cancelling booking...');
+        const res = await fetch((API_BASE || '') + '/api/customer/bookings/' + bookingId + '/cancel', {
+            method: 'PATCH',
+            headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' }
+        });
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.message || 'Cancel failed');
+        }
+        showToast('Booking cancelled');
+        loadMyBookings();
+    } catch (e) {
+        console.error(e);
+        showToast(e.message || 'Failed to cancel booking', true);
+    } finally {
+        hideActionLoader();
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    initWhatsAppFloat();
+    updateHeader();
+    loadMyBookings();
+});
+</script>
+</body>
+</html>

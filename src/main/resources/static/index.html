@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SmartHotel</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<header class="top-nav">
+    <div class="brand">SmartHotel</div>
+    <nav>
+        <a href="#hotels">Hotels</a>
+        <a href="/my-bookings.html" id="nav-my-bookings" style="display: none;">My Bookings</a>
+        <a href="/admin.html">Admin</a>
+    </nav>
+    <div class="header-actions">
+        <button type="button" class="secondary-btn" id="header-register-btn" style="display: none;">Register</button>
+        <button type="button" class="secondary-btn" id="header-login-btn">Login</button>
+        <button class="primary-btn" onclick="scrollToSection('hotels')">Book a Stay</button>
+    </div>
+</header>
+
+<!-- Register modal -->
+<div id="register-modal-backdrop" class="login-modal-backdrop" style="display: none;" aria-hidden="true">
+    <div id="register-modal" class="login-modal" role="dialog" aria-labelledby="register-modal-title">
+        <p id="register-modal-title" class="login-modal-title">Create account</p>
+        <form onsubmit="event.preventDefault(); customerRegister();">
+            <label for="register-fullName" class="login-label">Full Name</label>
+            <input type="text" id="register-fullName" class="form-input" placeholder="Your full name" required autocomplete="name">
+            <label for="register-email" class="login-label">Email</label>
+            <input type="email" id="register-email" class="form-input" placeholder="your@email.com" required autocomplete="email">
+            <label for="register-password" class="login-label">Password</label>
+            <input type="password" id="register-password" class="form-input" placeholder="Password" required autocomplete="new-password">
+            <label for="register-confirmPassword" class="login-label">Confirm Password</label>
+            <input type="password" id="register-confirmPassword" class="form-input" placeholder="Confirm password" required autocomplete="new-password">
+            <label for="register-phone" class="login-label">Phone (for WhatsApp confirmation)</label>
+            <input type="tel" id="register-phone" class="form-input" placeholder="e.g. 9876543210 or +919876543210" autocomplete="tel" minlength="10" maxlength="15" title="10–15 digits; optional. If provided, confirmation is sent here on WhatsApp.">
+            <button type="submit" class="primary-btn login-submit-btn">Register</button>
+            <p class="login-modal-hint" style="margin-top: 8px; font-size: 12px;">Confirmation will be sent to your email and, if you provide a valid phone, to WhatsApp (when server has SMTP and Twilio configured).</p>
+        </form>
+        <p class="login-modal-hint">Already have an account? <button type="button" class="link-btn" onclick="closeRegisterModal(); openLoginModal();">Login</button></p>
+    </div>
+</div>
+
+<!-- Login modal (centered, full overlay) -->
+<div id="login-modal-backdrop" class="login-modal-backdrop" style="display: none;" aria-hidden="true">
+    <div id="login-modal" class="login-modal" role="dialog" aria-labelledby="login-modal-title">
+        <p id="login-modal-title" class="login-modal-title">Sign in to book</p>
+        <form onsubmit="event.preventDefault(); customerLogin();">
+            <label for="login-email" class="login-label">Email</label>
+            <input type="email" id="login-email" class="form-input" placeholder="your@email.com" required autocomplete="email">
+            <label for="login-password" class="login-label">Password</label>
+            <input type="password" id="login-password" class="form-input" placeholder="Password" required autocomplete="current-password">
+            <button type="submit" class="primary-btn login-submit-btn">Login</button>
+        </form>
+        <p class="login-modal-hint">Don't have an account? <button type="button" class="link-btn" onclick="closeLoginModal(); openRegisterModal();">Register</button></p>
+    </div>
+</div>
+
+<section class="hero" id="hero">
+    <div class="hero-overlay"></div>
+    <div class="hero-content">
+        <h1>Find your perfect stay</h1>
+        <p>Browse hotels, amenities and nearby places. Book in a few clicks.</p>
+        <div class="hero-actions">
+            <button class="primary-btn" onclick="scrollToSection('search-panel')">Search Hotels</button>
+        </div>
+    </div>
+</section>
+
+<main class="main-content">
+    <section id="search-panel" class="panel panel-full search-panel-compact">
+        <div class="panel-header"><h2>Search Hotels</h2></div>
+        <form class="form-grid form-grid-search" onsubmit="event.preventDefault(); searchHotels();">
+            <div class="form-group">
+                <label for="search-state" class="login-label">State <span class="required">*</span></label>
+                <select id="search-state" class="form-input form-select" required>
+                    <option value="">Select State</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="search-city" class="login-label">City</label>
+                <select id="search-city" class="form-input form-select">
+                    <option value="">Any city</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="search-checkin" class="login-label">Check-in</label>
+                <input type="date" id="search-checkin" class="form-input">
+            </div>
+            <div class="form-group">
+                <label for="search-checkout" class="login-label">Check-out</label>
+                <input type="date" id="search-checkout" class="form-input">
+            </div>
+            <div class="form-group">
+                <label for="search-class" class="login-label">Room type</label>
+                <select id="search-class" class="form-input form-select">
+                    <option value="">Any room type</option>
+                    <option value="DELUXE">Deluxe</option>
+                    <option value="SUITE">Suite</option>
+                    <option value="AC">AC</option>
+                    <option value="NON-AC">Non-AC</option>
+                    <option value="LUXURY">Luxury</option>
+                    <option value="PREMIUM">Premium</option>
+                    <option value="BUDGET">Budget</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="search-hotel-type" class="login-label">Hotel type</label>
+                <select id="search-hotel-type" class="form-input form-select">
+                    <option value="">Any</option>
+                    <option value="Resort">Resort</option>
+                    <option value="Business">Business Hotel</option>
+                    <option value="Heritage">Heritage Hotel</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="search-min-price" class="login-label">Min price (₹)</label>
+                <input type="number" id="search-min-price" class="form-input" placeholder="Min" min="0" step="100">
+            </div>
+            <div class="form-group">
+                <label for="search-max-price" class="login-label">Max price (₹)</label>
+                <input type="number" id="search-max-price" class="form-input" placeholder="Max" min="0" step="100">
+            </div>
+            <div class="form-group form-group-search-btn">
+                <label class="login-label" style="visibility: hidden;">Search</label>
+                <button type="submit" class="primary-btn">Search</button>
+            </div>
+        </form>
+    </section>
+
+    <section id="hotels" class="hotels-section">
+        <div class="panel-header"><h2>Our Hotels</h2></div>
+        <div id="hotel-cards" class="hotel-cards"></div>
+    </section>
+</main>
+
+<div id="toast" class="toast hidden"></div>
+
+<!-- Floating WhatsApp: visible on all pages, opens wa.me with pre-filled message -->
+<a href="#" id="whatsapp-float" class="whatsapp-float" target="_blank" rel="noopener noreferrer" aria-label="Chat on WhatsApp">
+    <span class="whatsapp-float-tooltip">First send: join watch-swept to connect. Then send the pre-filled message to chat.</span>
+    <span class="whatsapp-float-icon" aria-hidden="true"></span>
+</a>
+
+<script src="/app.js"></script>
+</body>
+</html>

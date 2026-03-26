@@ -1,0 +1,823 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+body {
+    background: #0b0c10;
+    color: #f5f5f5;
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.top-nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px 0 20px;
+    gap: 16px;
+    background: rgba(5, 5, 10, 0.98);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    z-index: 1000;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+}
+
+.top-nav .brand {
+    font-weight: 700;
+    font-size: 18px;
+    letter-spacing: 2px;
+    flex-shrink: 0;
+}
+
+.top-nav nav {
+    display: flex;
+    align-items: center;
+    flex: 1 1 auto;
+    min-width: 0;
+    justify-content: center;
+    gap: 4px;
+}
+
+.top-nav nav a {
+    margin: 0 8px;
+    font-size: 14px;
+    opacity: 0.8;
+    white-space: nowrap;
+}
+
+.top-nav nav a:hover {
+    opacity: 1;
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.header-actions .primary-btn,
+.header-actions .secondary-btn {
+    white-space: nowrap;
+    padding: 6px 14px;
+    font-size: 13px;
+}
+
+/* Login modal: centered overlay */
+.login-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    background: rgba(0, 0, 0, 0.65);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    overflow-y: auto;
+}
+
+.login-modal {
+    width: 100%;
+    max-width: 360px;
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
+    background: #1a1d26;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+    padding: 24px;
+    margin: auto;
+}
+
+.login-modal-title {
+    margin: 0 0 16px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #f5f5f5;
+}
+
+.login-label {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.login-modal .form-input {
+    display: block;
+    width: 100%;
+    margin-bottom: 14px;
+    padding: 10px 12px;
+    background: #0b0c10;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 8px;
+    color: #f5f5f5;
+    font-size: 14px;
+}
+
+.login-modal .form-input::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.login-modal .form-input:focus {
+    outline: none;
+    border-color: #f5d76e;
+}
+
+.login-submit-btn {
+    width: 100%;
+    margin-top: 4px;
+}
+
+.login-modal-hint {
+    font-size: 11px;
+    opacity: 0.8;
+    margin-top: 12px;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.rooms-login-hint {
+    margin: 0 0 12px 0;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.85);
+}
+
+.link-btn {
+    background: none;
+    border: none;
+    color: #f5d76e;
+    cursor: pointer;
+    font-size: inherit;
+    text-decoration: underline;
+    padding: 0;
+}
+
+.link-btn:hover {
+    color: #fff;
+}
+
+.main-content {
+    padding: 24px 10% 48px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.hotels-section {
+    margin-top: 24px;
+}
+
+.hotels-section .panel-header {
+    margin-bottom: 16px;
+}
+
+.hotel-cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+}
+
+.hotel-card {
+    overflow: visible;
+    padding: 0;
+}
+
+.hotel-card-image {
+    height: 200px;
+    background-size: cover;
+    background-position: center;
+    border-radius: 16px 16px 0 0;
+}
+
+.rooms-panel {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    overflow-x: auto;
+    overflow-y: visible;
+}
+
+.rooms-panel h4 {
+    margin-bottom: 12px;
+    font-size: 15px;
+}
+
+.hotel-card-body {
+    padding: 16px;
+}
+
+.hotel-card-body h3 {
+    margin-bottom: 6px;
+}
+
+.hotel-location {
+    font-size: 13px;
+    opacity: 0.85;
+    margin-bottom: 4px;
+}
+
+.hotel-price {
+    font-weight: 600;
+    margin-bottom: 12px;
+}
+
+.hotel-amenities-wrap {
+    margin-bottom: 12px;
+}
+
+.hotel-amenities-wrap strong,
+.hotel-nearby-wrap strong {
+    display: block;
+    font-size: 12px;
+    opacity: 0.9;
+    margin-bottom: 6px;
+}
+
+.hotel-amenities {
+    list-style: none;
+    font-size: 12px;
+    opacity: 0.9;
+}
+
+.hotel-amenities li:before {
+    content: "• ";
+    color: #f5d76e;
+}
+
+.nearby-list {
+    list-style: none;
+    font-size: 12px;
+    opacity: 0.9;
+}
+
+.nearby-list li:before {
+    content: "• ";
+    color: #f5d76e;
+}
+
+.hotel-amenities-none,
+.nearby-none {
+    font-size: 12px;
+    opacity: 0.7;
+}
+
+.view-rooms-btn {
+    margin-top: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    white-space: nowrap;
+}
+
+.btn-icon-book {
+    flex-shrink: 0;
+    display: inline-block;
+    width: 22px;
+    height: 22px;
+    min-width: 22px;
+    min-height: 22px;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 19.5A2.5 2.5 0 0 1 6.5 17H20'/%3E%3Cpath d='M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z'/%3E%3Cline x1='8' y1='7' x2='16' y2='7'/%3E%3Cline x1='8' y1='11' x2='16' y2='11'/%3E%3C/svg%3E") center/contain no-repeat;
+    vertical-align: middle;
+}
+
+.search-panel-compact {
+    margin-bottom: 16px;
+}
+
+.primary-btn,
+.secondary-btn {
+    border-radius: 999px;
+    padding: 8px 20px;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+.primary-btn {
+    background: linear-gradient(135deg, #d4af37, #f5d76e);
+    color: #111;
+    font-weight: 600;
+}
+
+.primary-btn:hover {
+    filter: brightness(1.1);
+    transform: translateY(-1px);
+}
+
+.secondary-btn {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #f5f5f5;
+}
+
+.secondary-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.hero {
+    margin-top: 64px;
+    height: 340px;
+    position: relative;
+    background-image: url("https://images.pexels.com/photos/189296/pexels-photo-189296.jpeg");
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 0 10%;
+}
+
+.hero-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0.3));
+}
+
+.hero-content {
+    position: relative;
+    max-width: 520px;
+}
+
+.hero-content h1 {
+    font-size: 36px;
+    margin-bottom: 12px;
+}
+
+.hero-content p {
+    font-size: 16px;
+    margin-bottom: 24px;
+    opacity: 0.9;
+}
+
+.hero-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.stats-section {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    padding: 24px 10%;
+    margin-top: -40px;
+    position: relative;
+    z-index: 5;
+}
+
+.stat-card {
+    background: radial-gradient(circle at top left, #1f2833, #0b0c10);
+    border-radius: 16px;
+    padding: 16px 20px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+}
+
+.stat-card h3 {
+    font-size: 14px;
+    opacity: 0.8;
+    margin-bottom: 8px;
+}
+
+.stat-card p {
+    font-size: 24px;
+    font-weight: 700;
+}
+
+.main-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1.6fr);
+    gap: 20px;
+    padding: 10px 10% 40px;
+}
+
+.panel {
+    background: #11141a;
+    border-radius: 16px;
+    padding: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+}
+
+.panel-full {
+    grid-column: 1 / -1;
+}
+
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.panel-header h2 {
+    font-size: 18px;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 16px;
+    font-size: 13px;
+}
+
+.data-table thead {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.data-table th,
+.data-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    text-align: left;
+}
+
+.data-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.admin-booking-actions {
+    white-space: nowrap;
+}
+.admin-booking-actions .secondary-btn {
+    margin-right: 6px;
+}
+.admin-booking-actions .secondary-btn:last-child {
+    margin-right: 0;
+}
+
+.rooms-panel .data-table {
+    min-width: 560px;
+}
+
+/* Ensure check-in and check-out date columns are visible */
+.rooms-panel .data-table th:nth-child(3),
+.rooms-panel .data-table td:nth-child(3),
+.rooms-panel .data-table th:nth-child(4),
+.rooms-panel .data-table td:nth-child(4) {
+    min-width: 120px;
+    white-space: nowrap;
+}
+
+.rooms-panel .data-table th:nth-child(5),
+.rooms-panel .data-table td:nth-child(5) {
+    min-width: 100px;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.rooms-panel .data-table .form-input {
+    min-width: 0;
+    width: 100%;
+}
+
+.rooms-panel .data-table .primary-btn {
+    padding: 8px 16px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.required {
+    color: #f5d76e;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px;
+    margin-top: 10px;
+    align-items: center;
+}
+
+/* Search form: align State and Room type with labels on top */
+.form-grid-search {
+    align-items: end;
+}
+.form-grid-search .form-group {
+    min-width: 0;
+}
+.form-grid-search .form-group-search-btn {
+    align-items: flex-end;
+}
+
+.form-grid input[type="text"],
+.form-grid input[type="email"],
+.form-grid input[type="number"],
+.form-grid input[type="date"],
+.form-grid .form-input,
+.form-grid select.form-select {
+    background: #0b0c10;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    padding: 8px 12px;
+    color: #f5f5f5;
+    font-size: 13px;
+}
+
+.form-grid select.form-select {
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23f5f5f5' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 32px;
+}
+
+.form-grid select.form-select option {
+    background: #0b0c10;
+    color: #f5f5f5;
+}
+
+.form-grid input:focus,
+.form-grid select.form-select:focus {
+    outline: none;
+    border-color: #f5d76e;
+    box-shadow: 0 0 0 1px rgba(245, 215, 110, 0.5);
+}
+
+/* Admin dashboard: same dark inputs/selects as customer */
+.form-grid-admin input,
+.form-grid-admin select {
+    background: #0b0c10;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    padding: 8px 12px;
+    color: #f5f5f5;
+    font-size: 13px;
+}
+
+.form-grid-admin select {
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23f5f5f5' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 32px;
+}
+
+.form-grid-admin input:focus,
+.form-grid-admin select:focus {
+    outline: none;
+    border-color: #f5d76e;
+    box-shadow: 0 0 0 1px rgba(245, 215, 110, 0.5);
+}
+
+.create-booking-form .form-group-full {
+    grid-column: 1 / -1;
+}
+
+.create-booking-form .form-group-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.checkbox-inline {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+}
+
+.toast {
+    position: fixed;
+    right: 24px;
+    bottom: 96px;
+    background: rgba(0, 0, 0, 0.9);
+    color: #f5f5f5;
+    padding: 10px 16px;
+    border-radius: 999px;
+    font-size: 13px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all 0.2s ease;
+    z-index: 10001;
+}
+
+.toast.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.toast.error {
+    border-color: #ff6b6b;
+}
+
+.my-bookings-prompt {
+    padding: 24px 16px;
+    text-align: center;
+    opacity: 0.85;
+    font-size: 14px;
+}
+
+@media (max-width: 900px) {
+    .main-grid {
+        grid-template-columns: 1fr;
+        padding: 10px 16px 40px;
+    }
+
+    .hotel-cards {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .stats-section {
+        padding: 24px 16px;
+    }
+
+    .hero {
+        padding: 0 16px;
+    }
+
+    .top-nav {
+        padding: 0 16px;
+    }
+
+    .top-nav nav {
+        display: none;
+    }
+}
+
+/* Loading and empty states (UX) */
+.loading-state, .empty-state {
+    padding: 24px 16px;
+    text-align: center;
+    opacity: 0.9;
+    color: #c5cae9;
+}
+.loading-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+}
+.spinner {
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    border: 3px solid rgba(255,255,255,0.2);
+    border-top-color: #7c4dff;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.payment-processing-overlay {
+    position: fixed;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.65);
+    z-index: 10002;
+    padding: 16px;
+}
+
+.payment-processing-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #11141a;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 12px;
+    padding: 14px 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+}
+
+.payment-processing-card p {
+    margin: 0;
+    font-size: 14px;
+    color: #f5f5f5;
+}
+
+.payment-choice-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10003;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+}
+
+.payment-choice-card {
+    width: 100%;
+    max-width: 420px;
+    background: #11141a;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 14px;
+    padding: 18px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.payment-choice-card h3 {
+    margin: 0 0 8px 0;
+}
+
+.payment-choice-card p {
+    margin: 0 0 14px 0;
+    opacity: 0.88;
+    font-size: 14px;
+}
+
+.payment-choice-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.status-chip {
+    display: inline-block;
+    border-radius: 999px;
+    padding: 4px 10px;
+    font-size: 11px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    text-transform: capitalize;
+}
+
+.status-paid {
+    border-color: #4caf50;
+    color: #9be7a1;
+}
+
+.status-pending {
+    border-color: #f5d76e;
+    color: #f5d76e;
+}
+
+.status-pay-hotel {
+    border-color: #64b5f6;
+    color: #90caf9;
+}
+
+@media (max-width: 600px) {
+    .hotel-cards {
+        grid-template-columns: 1fr;
+    }
+
+    .toast {
+        right: 16px;
+        bottom: 92px;
+        max-width: calc(100vw - 32px);
+    }
+}
+
+/* Floating WhatsApp button: bottom-right, above all UI. Tooltip always visible so user sees join instruction. */
+.whatsapp-float {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: #25D366;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 20px rgba(37, 211, 102, 0.45);
+    z-index: 9999;
+    text-decoration: none;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    overflow: visible;
+}
+.whatsapp-float:hover {
+    transform: scale(1.08);
+    box-shadow: 0 6px 28px rgba(37, 211, 102, 0.55);
+}
+.whatsapp-float:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(37, 211, 102, 0.5);
+}
+.whatsapp-float-icon {
+    width: 32px;
+    height: 32px;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23fff'%3E%3Cpath d='M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z'/%3E%3C/svg%3E") center/contain no-repeat;
+}
+/* Tooltip hidden – no text next to WhatsApp floating button */
+.whatsapp-float-tooltip {
+    display: none !important;
+}
+

@@ -1,0 +1,16 @@
+# Local-only database settings (NOT committed to git).
+#
+# SETUP:
+# 1. Copy this file to: src/main/resources/application-local.properties
+# 2. Fill in your Supabase (or local Postgres) connection. Restart the app.
+#
+# Or in IntelliJ: Run → Edit Configurations → your Spring Boot run → Environment variables:
+#   SPRING_DATASOURCE_URL=jdbc:postgresql://YOUR-POOLER.supabase.co:5432/postgres
+#   SPRING_DATASOURCE_USERNAME=postgres.xxxxx
+#   SPRING_DATASOURCE_PASSWORD=your-password
+#
+# Supabase: Project Settings → Database → Connection string (URI), use pooler host if you use pooling.
+
+spring.datasource.url=jdbc:postgresql://localhost:5432/postgres
+spring.datasource.username=postgres
+spring.datasource.password=
