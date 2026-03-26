@@ -2,7 +2,14 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0b0c10">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>SmartHotel</title>
+    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="icon" href="/icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="/icon.svg">
     <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
@@ -14,6 +21,9 @@
         <a href="/admin.html">Admin</a>
     </nav>
     <div class="header-actions">
+        <button type="button" class="secondary-btn install-btn" id="install-app-btn" style="display: none;" aria-label="Install app">
+            Install App
+        </button>
         <button type="button" class="secondary-btn" id="header-register-btn" style="display: none;">Register</button>
         <button type="button" class="secondary-btn" id="header-login-btn">Login</button>
         <button class="primary-btn" onclick="scrollToSection('hotels')">Book a Stay</button>

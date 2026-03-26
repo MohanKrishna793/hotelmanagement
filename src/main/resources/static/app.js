@@ -53,6 +53,7 @@ async function loadStripeKey() {
 const WHATSAPP_NUMBER = '14155238886';
 const WHATSAPP_SANDBOX_JOIN = 'join watch-swept';
 const WHATSAPP_GREETING = 'Hello 👋, I need help with hotel booking on Smart Hotel Management.';
+let deferredInstallPrompt = null;
 
 function initWhatsAppFloat() {
     const el = document.getElementById('whatsapp-float');
@@ -62,6 +63,67 @@ function initWhatsAppFloat() {
     el.href = `https://wa.me/${WHATSAPP_NUMBER}?text=${text}`;
     const tooltip = el.querySelector('.whatsapp-float-tooltip');
     if (tooltip) tooltip.textContent = 'First send: ' + WHATSAPP_SANDBOX_JOIN + ' to connect. Then send the pre-filled message to chat.';
+}
+
+function isIosDevice() {
+    return /iphone|ipad|ipod/i.test(navigator.userAgent);
+}
+
+function isStandaloneMode() {
+    return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+}
+
+function showInstallButtonForIos() {
+    const btn = document.getElementById('install-app-btn');
+    if (!btn || isStandaloneMode()) return;
+    btn.style.display = 'inline-flex';
+    btn.onclick = () => {
+        showToast('On iPhone: tap Share icon, then "Add to Home Screen".');
+    };
+}
+
+function initInstallPrompt() {
+    const btn = document.getElementById('install-app-btn');
+    if (!btn) return;
+
+    if (isIosDevice()) {
+        showInstallButtonForIos();
+    }
+
+    window.addEventListener('beforeinstallprompt', (event) => {
+        event.preventDefault();
+        deferredInstallPrompt = event;
+        btn.style.display = 'inline-flex';
+    });
+
+    btn.addEventListener('click', async () => {
+        if (deferredInstallPrompt) {
+            deferredInstallPrompt.prompt();
+            const choice = await deferredInstallPrompt.userChoice;
+            if (choice && choice.outcome === 'accepted') {
+                showToast('App install started.');
+            }
+            deferredInstallPrompt = null;
+            btn.style.display = 'none';
+            return;
+        }
+        if (isIosDevice() && !isStandaloneMode()) {
+            showToast('On iPhone: tap Share icon, then "Add to Home Screen".');
+        }
+    });
+
+    window.addEventListener('appinstalled', () => {
+        btn.style.display = 'none';
+        showToast('SmartHotel installed successfully.');
+    });
+}
+
+function registerServiceWorker() {
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js').catch(() => {
+            // Ignore service worker registration errors.
+        });
+    }
 }
 
 function showToast(message, isError = false) {
@@ -772,6 +834,8 @@ if (document.readyState === 'loading') {
 }
 
 window.addEventListener('load', () => {
+    registerServiceWorker();
+    initInstallPrompt();
     initWhatsAppFloat();
     loadStates();
     loadStripeKey();

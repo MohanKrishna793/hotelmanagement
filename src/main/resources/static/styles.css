@@ -76,6 +76,17 @@ a {
     font-size: 13px;
 }
 
+.install-btn {
+    border-color: rgba(212, 175, 55, 0.7);
+    color: #f5d76e;
+}
+
+.install-btn::before {
+    content: "↓";
+    margin-right: 6px;
+    font-weight: 700;
+}
+
 /* Login modal: centered overlay */
 .login-modal-backdrop {
     position: fixed;
@@ -654,6 +665,11 @@ a {
 
     .top-nav nav {
         display: none;
+    }
+
+    .install-btn {
+        padding: 6px 10px;
+        font-size: 12px;
     }
 }
 
