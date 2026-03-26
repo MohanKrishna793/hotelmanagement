@@ -668,8 +668,14 @@ a {
     }
 
     .install-btn {
-        padding: 6px 10px;
+        position: fixed;
+        left: 16px;
+        bottom: 24px;
+        z-index: 9998;
+        padding: 8px 12px;
         font-size: 12px;
+        background: rgba(11, 12, 16, 0.95);
+        border: 1px solid rgba(212, 175, 55, 0.9);
     }
 }
 

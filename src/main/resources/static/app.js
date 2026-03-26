@@ -86,6 +86,10 @@ function initInstallPrompt() {
     const btn = document.getElementById('install-app-btn');
     if (!btn) return;
 
+    if (!isStandaloneMode()) {
+        btn.style.display = 'inline-flex';
+    }
+
     if (isIosDevice()) {
         showInstallButtonForIos();
     }
@@ -109,7 +113,9 @@ function initInstallPrompt() {
         }
         if (isIosDevice() && !isStandaloneMode()) {
             showToast('On iPhone: tap Share icon, then "Add to Home Screen".');
+            return;
         }
+        showToast('Install option will appear when browser allows it. In Chrome, open menu and tap "Install app".');
     });
 
     window.addEventListener('appinstalled', () => {
