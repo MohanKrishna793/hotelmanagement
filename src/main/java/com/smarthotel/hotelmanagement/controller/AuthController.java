@@ -20,6 +20,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -109,7 +110,8 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<?> registerCustomer(@Valid @RequestBody RegisterRequest request) {
+    public ResponseEntity<?> registerCustomer(@Valid @RequestBody RegisterRequest request,
+                                              @RequestHeader(name = "Origin", required = false) String appOrigin) {
         if (userRepository.existsByEmailIgnoreCase(request.getEmail())) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(Map.of("message", "Email already registered"));
@@ -133,7 +135,8 @@ public class AuthController {
         notificationService.sendRegistrationWelcomeAsync(
                 user.getFullName(),
                 user.getEmail(),
-                user.getPhone()
+                user.getPhone(),
+                appOrigin
         );
 
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -145,7 +148,8 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request) {
+    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request,
+                                   @RequestHeader(name = "Origin", required = false) String appOrigin) {
         try {
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
@@ -160,7 +164,7 @@ public class AuthController {
             String authEmail = authentication.getName();
             userRepository.findByEmailIgnoreCase(authEmail).ifPresentOrElse(user -> {
                 log.info("Triggering login notifications for {}", authEmail);
-                loginNotificationService.sendLoginNotifications(user);
+                loginNotificationService.sendLoginNotifications(user, appOrigin);
             }, () -> log.warn("Login notifications skipped: user not found for {}", authEmail));
             log.info("User logged in successfully: {}", request.getEmail());
 

@@ -17,7 +17,7 @@ public class LoginNotificationService {
 
     private final NotificationService notificationService;
 
-    @Value("${app.base-url:https://hotelmanagement-production-o2db.up.railway.app}")
+    @Value("${app.base-url:http://localhost:8080}")
     private String appBaseUrl;
 
     public LoginNotificationService(NotificationService notificationService) {
@@ -30,21 +30,26 @@ public class LoginNotificationService {
      */
     @Async
     public void sendLoginNotifications(User user) {
+        sendLoginNotifications(user, null);
+    }
+
+    @Async
+    public void sendLoginNotifications(User user, String appBaseUrlOverride) {
         if (user == null) return;
         String name = user.getFullName() != null ? user.getFullName() : "Guest";
         String email = user.getEmail();
 
-        sendLoginEmail(name, email);
+        sendLoginEmail(name, email, appBaseUrlOverride);
     }
 
-    private void sendLoginEmail(String name, String toEmail) {
+    private void sendLoginEmail(String name, String toEmail, String appBaseUrlOverride) {
         if (toEmail == null || toEmail.isBlank()) return;
-        notificationService.sendEmailUsingConfiguredProvider(toEmail, EMAIL_SUBJECT, buildLoginEmailBody(name), "login");
+        notificationService.sendEmailUsingConfiguredProvider(toEmail, EMAIL_SUBJECT, buildLoginEmailBody(name, appBaseUrlOverride), "login");
     }
 
-    private String buildLoginEmailBody(String name) {
+    private String buildLoginEmailBody(String name, String appBaseUrlOverride) {
         String safeName = StringUtils.hasText(name) ? name.trim() : "Guest";
-        String appUrl = normalizeAppBaseUrl();
+        String appUrl = resolveAppBaseUrl(appBaseUrlOverride);
         return """
             <div style="margin:0;padding:0;background:#0f0c09;font-family:Arial,sans-serif;">
               <div style="max-width:640px;margin:0 auto;background:#faf8f4;">
@@ -92,8 +97,18 @@ public class LoginNotificationService {
     }
 
     private String normalizeAppBaseUrl() {
-        String base = StringUtils.hasText(appBaseUrl) ? appBaseUrl.trim() : "https://hotelmanagement-production-o2db.up.railway.app";
+        String base = StringUtils.hasText(appBaseUrl) ? appBaseUrl.trim() : "http://localhost:8080";
         return base.replaceAll("/+$", "");
+    }
+
+    private String resolveAppBaseUrl(String appBaseUrlOverride) {
+        if (StringUtils.hasText(appBaseUrlOverride)) {
+            String candidate = appBaseUrlOverride.trim();
+            if (candidate.startsWith("http://") || candidate.startsWith("https://")) {
+                return candidate.replaceAll("/+$", "");
+            }
+        }
+        return normalizeAppBaseUrl();
     }
 
 }

@@ -79,7 +79,8 @@ public class CustomerBookingService {
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public CreateBookingApiResult createBookingForUser(String userEmail, Long roomId,
                                         LocalDate checkIn, LocalDate checkOut, String guestPhone,
-                                        String paymentMethodStr, String specialRequests, String discountCodeStr, String idempotencyKey) {
+                                        String paymentMethodStr, String specialRequests, String discountCodeStr, String idempotencyKey,
+                                        String appBaseUrl) {
         if (checkIn == null || checkOut == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Check-in and check-out dates are required");
         }
@@ -141,7 +142,7 @@ public class CustomerBookingService {
             StripePaymentService.SessionResult sessionResult;
             try {
                 sessionResult = stripePaymentService.createCheckoutSessionForIntent(
-                        pricing.totalCost(), userEmail, meta);
+                        pricing.totalCost(), userEmail, meta, appBaseUrl);
             } catch (RuntimeException e) {
                 log.warn("Stripe checkout failed: {}", e.getMessage());
                 throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
@@ -158,7 +159,7 @@ public class CustomerBookingService {
 
         Booking saved = transactionTemplate.execute(status -> createPayAtHotelBookingInTransaction(
                 userEmail, roomId, checkIn, checkOut, guestPhone, specialRequests, discountCodeStr, idempotencyKey));
-        finishBookingAfterSave(userEmail, roomId, checkIn, checkOut, saved);
+        finishBookingAfterSave(userEmail, roomId, checkIn, checkOut, saved, appBaseUrl);
         return CreateBookingApiResult.forPayAtHotel(saved);
     }
 
@@ -256,15 +257,15 @@ public class CustomerBookingService {
         return saved;
     }
 
-    private void finishBookingAfterSave(String userEmail, Long roomId, LocalDate checkIn, LocalDate checkOut, Booking saved) {
+    private void finishBookingAfterSave(String userEmail, Long roomId, LocalDate checkIn, LocalDate checkOut, Booking saved, String appBaseUrl) {
         log.info("Booking created: id={}, user={}, roomId={}, checkIn={}, checkOut={}, total={}, payment={}",
                 saved.getId(), userEmail, roomId, checkIn, checkOut, saved.getTotalCost(), saved.getPaymentStatus());
         auditService.log(userEmail, "BOOKING_CREATED", "BOOKING", saved.getId(),
                 "payment=" + saved.getPaymentMethod() + ", total=" + saved.getTotalCost());
-        notificationService.sendBookingConfirmationAsync(buildNotificationContext(saved));
+        notificationService.sendBookingConfirmationAsync(buildNotificationContext(saved, appBaseUrl));
     }
 
-    private BookingNotificationContext buildNotificationContext(Booking saved) {
+    private BookingNotificationContext buildNotificationContext(Booking saved, String appBaseUrl) {
         Guest g = saved.getGuest();
         Room r = saved.getRoom();
         String hotelName = (r != null && r.getHotel() != null) ? r.getHotel().getName() : "Smart Hotel";
@@ -276,7 +277,8 @@ public class CustomerBookingService {
                 saved.getCheckInDate(),
                 saved.getCheckOutDate(),
                 "BK-" + saved.getId(),
-                saved.getTotalCost()
+                saved.getTotalCost(),
+                appBaseUrl
         );
     }
 
@@ -323,7 +325,7 @@ public class CustomerBookingService {
      * then insert the booking (short {@code FOR UPDATE} only here).
      */
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    public Booking verifyStripePayment(String userEmail, String sessionId) {
+    public Booking verifyStripePayment(String userEmail, String sessionId, String appBaseUrl) {
         userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
         Session session = stripePaymentService.retrieveCheckoutSession(sessionId);
@@ -333,7 +335,7 @@ public class CustomerBookingService {
         if (!"paid".equalsIgnoreCase(session.getPaymentStatus())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Payment not completed for this session");
         }
-        return transactionTemplate.execute(status -> materializeBookingFromPaidSession(session, userEmail));
+        return transactionTemplate.execute(status -> materializeBookingFromPaidSession(session, userEmail, appBaseUrl));
     }
 
     /**
@@ -355,7 +357,7 @@ public class CustomerBookingService {
         }
         try {
             transactionTemplate.executeWithoutResult(status -> {
-                materializeBookingFromPaidSession(session, email.trim());
+                materializeBookingFromPaidSession(session, email.trim(), null);
             });
         } catch (Exception e) {
             log.error("Webhook booking sync failed for session {}", session.getId(), e);
@@ -365,7 +367,7 @@ public class CustomerBookingService {
     /**
      * Inserts booking + marks room unavailable after Stripe confirms payment. Idempotent by session id.
      */
-    private Booking materializeBookingFromPaidSession(Session session, String authenticatedEmail) {
+    private Booking materializeBookingFromPaidSession(Session session, String authenticatedEmail, String appBaseUrl) {
         Map<String, String> meta = session.getMetadata();
         if (meta == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Missing Stripe session metadata");
@@ -471,7 +473,7 @@ public class CustomerBookingService {
         room.setAvailable(Boolean.FALSE);
         roomRepository.save(room);
 
-        finishBookingAfterSave(authenticatedEmail, roomId, checkIn, checkOut, saved);
+        finishBookingAfterSave(authenticatedEmail, roomId, checkIn, checkOut, saved, appBaseUrl);
         auditService.log(authenticatedEmail, "PAYMENT_VERIFIED", "BOOKING", saved.getId(), "session=" + session.getId());
         return saved;
     }

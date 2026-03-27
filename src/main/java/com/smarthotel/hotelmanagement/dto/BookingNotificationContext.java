@@ -14,5 +14,6 @@ public record BookingNotificationContext(
         LocalDate checkInDate,
         LocalDate checkOutDate,
         String bookingReference,
-        Double totalCost
+        Double totalCost,
+        String appBaseUrl
 ) {}

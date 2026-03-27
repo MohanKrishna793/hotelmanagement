@@ -40,7 +40,7 @@ public class NotificationService {
     @Value("${app.mail.fromName:Smart Hotel}")
     private String mailFromName;
 
-    @Value("${app.base-url:https://hotelmanagement-production-o2db.up.railway.app}")
+    @Value("${app.base-url:http://localhost:8080}")
     private String appBaseUrl;
 
     @Value("${brevo.api.key:}")
@@ -62,22 +62,27 @@ public class NotificationService {
 
     @Async
     public void sendRegistrationWelcomeAsync(String fullName, String email, String phone) {
-        if (!StringUtils.hasText(email) || !isValidEmail(email)) return;
-        sendRegistrationEmail(fullName != null ? fullName : "Guest", email);
+        sendRegistrationWelcomeAsync(fullName, email, phone, null);
     }
 
-    private void sendRegistrationEmail(String name, String toEmail) {
+    @Async
+    public void sendRegistrationWelcomeAsync(String fullName, String email, String phone, String appBaseUrlOverride) {
+        if (!StringUtils.hasText(email) || !isValidEmail(email)) return;
+        sendRegistrationEmail(fullName != null ? fullName : "Guest", email, appBaseUrlOverride);
+    }
+
+    private void sendRegistrationEmail(String name, String toEmail, String appBaseUrlOverride) {
         sendEmailUsingConfiguredProvider(
                 toEmail,
                 "Welcome to Smart Hotel Management",
-                buildRegistrationEmailBody(name),
+                buildRegistrationEmailBody(name, appBaseUrlOverride),
                 "registration welcome"
         );
     }
 
-    private String buildRegistrationEmailBody(String name) {
+    private String buildRegistrationEmailBody(String name, String appBaseUrlOverride) {
         String safeName = StringUtils.hasText(name) ? name.trim() : "Guest";
-        String appUrl = normalizeAppBaseUrl();
+        String appUrl = resolveAppBaseUrl(appBaseUrlOverride);
         return """
             <div style="margin:0;padding:0;background:#0f0c09;font-family:Arial,sans-serif;">
               <div style="max-width:640px;margin:0 auto;background:#faf8f4;">
@@ -160,7 +165,7 @@ public class NotificationService {
         String to = ctx.guestEmail();
         if (!StringUtils.hasText(to) || !isValidEmail(to)) return;
         String name = StringUtils.hasText(ctx.guestName()) ? ctx.guestName() : "Guest";
-        String appUrl = normalizeAppBaseUrl();
+        String appUrl = resolveAppBaseUrl(ctx.appBaseUrl());
         String bookingRef = StringUtils.hasText(ctx.bookingReference()) ? ctx.bookingReference() : "-";
         String hotelName = StringUtils.hasText(ctx.hotelName()) ? ctx.hotelName() : "your selected hotel";
         String html = """
@@ -285,7 +290,7 @@ public class NotificationService {
 
     private String buildEmailBody(BookingNotificationContext ctx) {
         String name = StringUtils.hasText(ctx.guestName()) ? ctx.guestName() : "Guest";
-        String appUrl = normalizeAppBaseUrl();
+        String appUrl = resolveAppBaseUrl(ctx.appBaseUrl());
         double total = ctx.totalCost() != null ? ctx.totalCost() : 0.0;
         long nights = 0;
         if (ctx.checkInDate() != null && ctx.checkOutDate() != null) {
@@ -366,8 +371,18 @@ public class NotificationService {
     }
 
     private String normalizeAppBaseUrl() {
-        String base = StringUtils.hasText(appBaseUrl) ? appBaseUrl.trim() : "https://hotelmanagement-production-o2db.up.railway.app";
+        String base = StringUtils.hasText(appBaseUrl) ? appBaseUrl.trim() : "http://localhost:8080";
         return base.replaceAll("/+$", "");
+    }
+
+    private String resolveAppBaseUrl(String appBaseUrlOverride) {
+        if (StringUtils.hasText(appBaseUrlOverride)) {
+            String candidate = appBaseUrlOverride.trim();
+            if (candidate.startsWith("http://") || candidate.startsWith("https://")) {
+                return candidate.replaceAll("/+$", "");
+            }
+        }
+        return normalizeAppBaseUrl();
     }
 
     private static boolean isValidEmail(String email) {

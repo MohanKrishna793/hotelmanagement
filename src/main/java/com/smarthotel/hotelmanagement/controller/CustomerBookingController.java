@@ -59,14 +59,16 @@ public class CustomerBookingController {
 
     @PostMapping("/verify-stripe")
     public Booking verifyStripePayment(Authentication authentication,
+                                       @RequestHeader(name = "Origin", required = false) String appOrigin,
                                        @RequestBody java.util.Map<String, String> body) {
         String email = authentication.getName();
         String sessionId = body != null ? body.get("session_id") : null;
-        return customerBookingService.verifyStripePayment(email, sessionId);
+        return customerBookingService.verifyStripePayment(email, sessionId, appOrigin);
     }
 
     @PostMapping
     public Object createBooking(Authentication authentication,
+                                 @RequestHeader(name = "Origin", required = false) String appOrigin,
                                  @RequestHeader(name = "Idempotency-Key", required = false) String idempotencyKey,
                                  @RequestBody CreateBookingRequest request) {
         String email = authentication.getName();
@@ -79,7 +81,8 @@ public class CustomerBookingController {
                 request.getPaymentMethod(),
                 request.getSpecialRequests(),
                 request.getDiscountCode(),
-                idempotencyKey
+                idempotencyKey,
+                appOrigin
         );
         if (result.isStripeRedirect()) {
             return Map.of(

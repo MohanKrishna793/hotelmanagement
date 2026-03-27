@@ -40,7 +40,7 @@ public class StripePaymentService {
     @Value("${app.stripe.enabled:false}")
     private boolean enabled;
 
-    @Value("${app.base-url:https://hotelmanagement-production-o2db.up.railway.app}")
+    @Value("${app.base-url:http://localhost:8080}")
     private String baseUrl;
 
     @Value("${app.stripe.webhook-secret:}")
@@ -67,13 +67,15 @@ public class StripePaymentService {
      * This avoids {@code SELECT ... FOR UPDATE} on {@code rooms} until after the user returns from Stripe.
      */
     public SessionResult createCheckoutSessionForIntent(double amountInr, String customerEmail,
-                                                        Map<String, String> bookingMetadata) {
+                                                        Map<String, String> bookingMetadata,
+                                                        String appBaseUrlOverride) {
         if (!isEnabled()) return null;
         long amountPaise = Math.round(amountInr * 100);
         if (amountPaise <= 0) return null;
 
-        String successUrl = baseUrl.replaceAll("/$", "") + "/index.html?session_id={CHECKOUT_SESSION_ID}#payment-success";
-        String cancelUrl = baseUrl.replaceAll("/$", "") + "/index.html#payment-cancelled";
+        String resolvedBaseUrl = resolveBaseUrl(appBaseUrlOverride);
+        String successUrl = resolvedBaseUrl + "/index.html?session_id={CHECKOUT_SESSION_ID}#payment-success";
+        String cancelUrl = resolvedBaseUrl + "/index.html#payment-cancelled";
 
         try {
             SessionCreateParams.LineItem.PriceData priceData = SessionCreateParams.LineItem.PriceData.builder()
@@ -172,5 +174,19 @@ public class StripePaymentService {
 
         public String getSessionId() { return sessionId; }
         public String getUrl() { return url; }
+    }
+
+    private String resolveBaseUrl(String appBaseUrlOverride) {
+        if (appBaseUrlOverride != null) {
+            String candidate = appBaseUrlOverride.trim();
+            if (candidate.startsWith("http://") || candidate.startsWith("https://")) {
+                return candidate.replaceAll("/+$", "");
+            }
+        }
+        String base = baseUrl != null ? baseUrl.trim() : "";
+        if (!base.isBlank()) {
+            return base.replaceAll("/+$", "");
+        }
+        return "http://localhost:8080";
     }
 }

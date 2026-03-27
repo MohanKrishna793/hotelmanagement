@@ -118,7 +118,8 @@ public class BookingService {
                 saved.getCheckInDate(),
                 saved.getCheckOutDate(),
                 "BK-" + saved.getId(),
-                saved.getTotalCost()
+                saved.getTotalCost(),
+                null
         );
     }
 
