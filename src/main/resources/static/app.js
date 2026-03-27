@@ -3,6 +3,42 @@ window.STRIPE_ENABLED = false;
 /** Set after a successful /api/customer/stripe-key so "Book" does not wait on a second round-trip. */
 window.STRIPE_CONFIG_READY = false;
 let stripeKeyFetchInFlight = null;
+const JWT_STORAGE_KEYS = ['jwt', 'jwt_backup'];
+
+function saveJwt(token) {
+    const normalized = normalizeJwt(token);
+    if (!normalized) return;
+    try {
+        localStorage.setItem(JWT_STORAGE_KEYS[0], normalized);
+        sessionStorage.setItem(JWT_STORAGE_KEYS[1], normalized);
+    } catch (e) {
+        // Ignore storage write failures.
+    }
+}
+
+function clearJwt() {
+    try {
+        localStorage.removeItem(JWT_STORAGE_KEYS[0]);
+        sessionStorage.removeItem(JWT_STORAGE_KEYS[1]);
+    } catch (e) {
+        // Ignore storage clear failures.
+    }
+}
+
+function getRawStoredJwt() {
+    const local = normalizeJwt(localStorage.getItem(JWT_STORAGE_KEYS[0]));
+    if (local) return local;
+    const backup = normalizeJwt(sessionStorage.getItem(JWT_STORAGE_KEYS[1]));
+    if (backup) {
+        try {
+            localStorage.setItem(JWT_STORAGE_KEYS[0], backup);
+        } catch (e) {
+            // Ignore recovery write failures.
+        }
+        return backup;
+    }
+    return '';
+}
 
 function normalizeJwt(token) {
     if (!token || typeof token !== 'string') return '';
@@ -20,7 +56,7 @@ function normalizeJwt(token) {
 }
 
 function getStoredJwt() {
-    const token = normalizeJwt(localStorage.getItem('jwt'));
+    const token = getRawStoredJwt();
     if (!token || token.split('.').length !== 3) return null;
     return token;
 }
@@ -198,7 +234,7 @@ function isJwtExpired(token) {
 }
 
 function handleAuthExpired(message) {
-    localStorage.removeItem('jwt');
+    clearJwt();
     updateHeaderForAuth();
     showToast(message || 'Session expired. Please log in again.', true);
     scrollToTopAndOpenLogin();
@@ -483,7 +519,7 @@ async function searchHotels(lat, lng) {
 }
 
 async function loadRoomsForHotel(hotelId) {
-    const token = localStorage.getItem('jwt');
+    const token = getStoredJwt();
     const checkInEl = document.getElementById('search-checkin');
     const checkOutEl = document.getElementById('search-checkout');
     const searchCheckIn = checkInEl && checkInEl.value ? checkInEl.value : '';
@@ -578,7 +614,7 @@ async function loadRoomsForHotel(hotelId) {
 
         detail.querySelectorAll('button[data-room-id]').forEach(btn => {
             btn.addEventListener('click', () => {
-                if (!localStorage.getItem('jwt')) {
+                if (!getStoredJwt()) {
                     showToast('Please log in first to book a room.', true);
                     scrollToTopAndOpenLogin();
                     return;
@@ -699,7 +735,7 @@ async function handleStripePaymentReturn() {
     const sessionId = params.get('session_id');
     const hash = (window.location.hash || '').replace('#', '');
     if (!sessionId || hash !== 'payment-success') return;
-    const token = localStorage.getItem('jwt');
+    const token = getStoredJwt();
     if (!token) {
         showToast('Please log in to complete payment verification.', true);
         return;
@@ -730,7 +766,7 @@ async function handleStripePaymentReturn() {
 
 /** Used only to check if user has bookings (e.g. for nav). My Bookings table is on /my-bookings.html. */
 async function loadMyBookings() {
-    const token = localStorage.getItem('jwt');
+    const token = getStoredJwt();
     if (!token) return false;
     try {
         const res = await fetch(`${API_BASE}/api/customer/bookings`, {
@@ -840,6 +876,12 @@ async function customerRegister() {
 
 // Keep login across refresh so Stripe return verification can complete.
 function initAuthState() {
+    const token = getStoredJwt();
+    if (token && isJwtExpired(token)) {
+        clearJwt();
+    } else if (token) {
+        saveJwt(token);
+    }
     updateHeaderForAuth();
 }
 
@@ -868,9 +910,9 @@ window.addEventListener('load', () => {
     }
 
     document.getElementById('header-login-btn').addEventListener('click', () => {
-        const token = localStorage.getItem('jwt');
+        const token = getStoredJwt();
         if (token) {
-            localStorage.removeItem('jwt');
+            clearJwt();
             window.STRIPE_CONFIG_READY = false;
             window.STRIPE_ENABLED = false;
             updateHeaderForAuth();
@@ -927,7 +969,7 @@ async function customerLogin() {
         if (!token) {
             throw new Error('Login response missing token');
         }
-        localStorage.setItem('jwt', token);
+        saveJwt(token);
         await loadStripeKey();
         showToast('Login successful');
         closeLoginModal();
