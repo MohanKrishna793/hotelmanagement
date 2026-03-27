@@ -59,6 +59,18 @@ a {
     flex-shrink: 0;
 }
 
+.brand-text {
+    font-weight: 700;
+    letter-spacing: 1px;
+    font-size: 18px;
+    color: #f5f5f5;
+    display: none;
+}
+
+.brand-wordmark[style*="display: none"] + .brand-text {
+    display: inline-block;
+}
+
 .top-nav nav {
     display: flex;
     align-items: center;
@@ -724,6 +736,10 @@ a {
 
     .brand-wordmark {
         height: 18px;
+    }
+
+    .brand-text {
+        font-size: 16px;
     }
 }
 
