@@ -50,6 +50,12 @@ public class NotificationService {
     @Value("${app.mail.fromName:Smart Hotel}")
     private String mailFromName;
 
+    @Value("${brevo.api.key:}")
+    private String brevoApiKey;
+
+    @Value("${brevo.api.url:https://api.brevo.com/v3/smtp/email}")
+    private String brevoApiUrl;
+
     @Value("${app.twilio.account-sid:}")
     private String twilioAccountSid;
 
@@ -115,23 +121,12 @@ public class NotificationService {
     }
 
     private void sendRegistrationEmail(String name, String toEmail) {
-        if (!StringUtils.hasText(mailUsername)) {
-            log.warn("SMTP not configured (missing spring.mail.username); skipping registration welcome email.");
-            return;
-        }
-        String effectiveFrom = StringUtils.hasText(mailFrom) ? mailFrom : mailUsername;
-        try {
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, StandardCharsets.UTF_8.name());
-            helper.setFrom(effectiveFrom, mailFromName);
-            helper.setTo(toEmail);
-            helper.setSubject("Welcome to Smart Hotel Management");
-            helper.setText(buildRegistrationEmailBody(name), true);
-            mailSender.send(message);
-            log.info("Registration welcome email sent to {}", toEmail);
-        } catch (Exception e) {
-            log.error("Failed to send registration welcome email to {}: {}", toEmail, e.getMessage());
-        }
+        sendEmailUsingConfiguredProvider(
+                toEmail,
+                "Welcome to Smart Hotel Management",
+                buildRegistrationEmailBody(name),
+                "registration welcome"
+        );
     }
 
     private String buildRegistrationEmailBody(String name) {
@@ -228,30 +223,17 @@ public class NotificationService {
     }
 
     public void sendConfirmationEmail(BookingNotificationContext ctx) {
-        if (!StringUtils.hasText(mailUsername)) {
-            log.warn("SMTP not configured (missing spring.mail.username); skipping confirmation email.");
-            return;
-        }
-        String effectiveFrom = StringUtils.hasText(mailFrom) ? mailFrom : mailUsername;
         String email = ctx.guestEmail();
         if (!StringUtils.hasText(email) || !isValidEmail(email)) {
             log.warn("Invalid or missing guest email for notification: {}", email != null ? "present" : "null");
             return;
         }
-        try {
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, StandardCharsets.UTF_8.name());
-            helper.setFrom(effectiveFrom, mailFromName);
-            helper.setTo(email);
-            helper.setSubject("Booking Confirmation & Bill – Smart Hotel");
-            helper.setText(buildEmailBody(ctx), true);
-            mailSender.send(message);
-            log.info("Confirmation email sent to {}", email);
-        } catch (MessagingException e) {
-            log.error("Failed to send confirmation email to {}: {}", email, e.getMessage());
-        } catch (Exception e) {
-            log.error("Failed to send confirmation email", e);
-        }
+        sendEmailUsingConfiguredProvider(
+                email,
+                "Booking Confirmation & Bill – Smart Hotel",
+                buildEmailBody(ctx),
+                "booking confirmation"
+        );
     }
 
     public void sendConfirmationWhatsApp(BookingNotificationContext ctx) {
@@ -292,23 +274,70 @@ public class NotificationService {
     }
 
     private void sendCancellationEmail(BookingNotificationContext ctx, double refund) {
-        if (!StringUtils.hasText(mailUsername)) {
-            log.warn("SMTP not configured (missing spring.mail.username); skipping cancellation email.");
-            return;
+        String to = ctx.guestEmail();
+        if (!StringUtils.hasText(to) || !isValidEmail(to)) return;
+        String name = StringUtils.hasText(ctx.guestName()) ? ctx.guestName() : "Guest";
+        String html = "<p>Dear " + name + ",</p><p>Your booking at " + ctx.hotelName() + " (Ref: " + ctx.bookingReference() + ") has been cancelled.</p><p><strong>Refund amount: ₹" + String.format("%.2f", refund) + "</strong></p><p>Thank you.</p>";
+        sendEmailUsingConfiguredProvider(to, "Booking Cancelled – Smart Hotel", html, "booking cancellation");
+    }
+
+    public boolean sendEmailUsingConfiguredProvider(String toEmail, String subject, String htmlBody, String context) {
+        if (!StringUtils.hasText(toEmail) || !isValidEmail(toEmail)) return false;
+        String effectiveFrom = StringUtils.hasText(mailFrom) ? mailFrom.trim()
+                : (StringUtils.hasText(mailUsername) ? mailUsername.trim() : null);
+        if (!StringUtils.hasText(effectiveFrom)) {
+            log.warn("Email skipped ({}): MAIL_FROM/SMTP_USERNAME missing.", context);
+            return false;
         }
-        String effectiveFrom = StringUtils.hasText(mailFrom) ? mailFrom : mailUsername;
+
+        if (StringUtils.hasText(brevoApiKey)) {
+            try {
+                sendViaBrevoApi(effectiveFrom, toEmail, subject, htmlBody);
+                log.info("{} email sent to {} via Brevo API", context, toEmail);
+                return true;
+            } catch (Exception e) {
+                log.error("Brevo API send failed for {} to {}: {}", context, toEmail, e.getMessage());
+            }
+        }
+
+        if (!StringUtils.hasText(mailUsername)) {
+            log.warn("Email skipped ({}): SMTP_USERNAME missing and Brevo API unavailable.", context);
+            return false;
+        }
+
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, StandardCharsets.UTF_8.name());
             helper.setFrom(effectiveFrom, mailFromName);
-            helper.setTo(ctx.guestEmail());
-            helper.setSubject("Booking Cancelled – Smart Hotel");
-            String name = StringUtils.hasText(ctx.guestName()) ? ctx.guestName() : "Guest";
-            String html = "<p>Dear " + name + ",</p><p>Your booking at " + ctx.hotelName() + " (Ref: " + ctx.bookingReference() + ") has been cancelled.</p><p><strong>Refund amount: ₹" + String.format("%.2f", refund) + "</strong></p><p>Thank you.</p>";
-            helper.setText(html, true);
+            helper.setTo(toEmail);
+            helper.setSubject(subject);
+            helper.setText(htmlBody, true);
             mailSender.send(message);
+            log.info("{} email sent to {} via SMTP", context, toEmail);
+            return true;
         } catch (MessagingException | java.io.UnsupportedEncodingException e) {
-            log.warn("Failed to send cancellation email: {}", e.getMessage());
+            log.error("Failed to send {} email to {} via SMTP: {}", context, toEmail, e.getMessage());
+            return false;
+        }
+    }
+
+    private void sendViaBrevoApi(String fromEmail, String toEmail, String subject, String htmlBody) {
+        String url = StringUtils.hasText(brevoApiUrl) ? brevoApiUrl : "https://api.brevo.com/v3/smtp/email";
+        Map<String, Object> payload = Map.of(
+                "sender", Map.of("name", StringUtils.hasText(mailFromName) ? mailFromName : "Smart Hotel", "email", fromEmail),
+                "to", java.util.List.of(Map.of("email", toEmail)),
+                "subject", subject,
+                "htmlContent", htmlBody
+        );
+        org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+        headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
+        headers.set("api-key", brevoApiKey.trim());
+        org.springframework.http.HttpEntity<Map<String, Object>> entity = new org.springframework.http.HttpEntity<>(payload, headers);
+        try {
+            restTemplate.postForEntity(url, entity, Map.class);
+        } catch (HttpStatusCodeException e) {
+            log.error("Brevo API rejected email. status={}, body={}", e.getStatusCode(), e.getResponseBodyAsString());
+            throw e;
         }
     }
 

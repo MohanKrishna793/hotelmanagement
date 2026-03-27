@@ -1,18 +1,12 @@
 package com.smarthotel.hotelmanagement.service;
 
 import com.smarthotel.hotelmanagement.entity.User;
-import jakarta.mail.MessagingException;
-import jakarta.mail.internet.MimeMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
-
-import java.nio.charset.StandardCharsets;
 
 /**
  * Sends login success notifications by email and (optional) WhatsApp.
@@ -25,17 +19,7 @@ public class LoginNotificationService {
     private static final Logger log = LoggerFactory.getLogger(LoginNotificationService.class);
     private static final String EMAIL_SUBJECT = "Login Successful – Smart Hotel Management System";
 
-    private final JavaMailSender mailSender;
     private final NotificationService notificationService;
-
-    @Value("${spring.mail.username:}")
-    private String mailUsername;
-
-    @Value("${app.mail.from:}")
-    private String mailFrom;
-
-    @Value("${app.mail.fromName:Smart Hotel}")
-    private String mailFromName;
 
     @Value("${app.whatsapp.enabled:true}")
     private boolean whatsappEnabled;
@@ -43,8 +27,7 @@ public class LoginNotificationService {
     @Value("${app.whatsapp.sandbox-join:join watch-swept}")
     private String whatsappSandboxJoin;
 
-    public LoginNotificationService(JavaMailSender mailSender, NotificationService notificationService) {
-        this.mailSender = mailSender;
+    public LoginNotificationService(NotificationService notificationService) {
         this.notificationService = notificationService;
     }
 
@@ -65,23 +48,7 @@ public class LoginNotificationService {
 
     private void sendLoginEmail(String name, String toEmail) {
         if (toEmail == null || toEmail.isBlank()) return;
-        if (!StringUtils.hasText(mailUsername)) {
-            log.warn("Login email skipped: missing SMTP_USERNAME.");
-            return;
-        }
-        String effectiveFrom = StringUtils.hasText(mailFrom) ? mailFrom : mailUsername;
-        try {
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, StandardCharsets.UTF_8.name());
-            helper.setFrom(effectiveFrom, mailFromName);
-            helper.setTo(toEmail);
-            helper.setSubject(EMAIL_SUBJECT);
-            helper.setText(buildLoginEmailBody(name), true);
-            mailSender.send(message);
-            log.info("Login email sent to {}", toEmail);
-        } catch (MessagingException | java.io.UnsupportedEncodingException e) {
-            log.warn("Failed to send login email to {}: {}", toEmail, e.getMessage());
-        }
+        notificationService.sendEmailUsingConfiguredProvider(toEmail, EMAIL_SUBJECT, buildLoginEmailBody(name), "login");
     }
 
     private String buildLoginEmailBody(String name) {
