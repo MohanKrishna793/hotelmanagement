@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -159,7 +160,10 @@ public class AdminStaffController {
                 passwordEncoder.encode(request.getPassword()),
                 request.getFullName().trim()
         );
-        user.setRoles(Set.of(role));
+        // Use a mutable collection for JPA-managed role associations.
+        Set<Role> roles = new HashSet<>();
+        roles.add(role);
+        user.setRoles(roles);
         if (request.getPhone() != null && !request.getPhone().trim().isEmpty()) {
             user.setPhone(request.getPhone().trim());
         }
@@ -225,7 +229,10 @@ public class AdminStaffController {
 
         Role role = roleRepository.findByName(roleName)
                 .orElseGet(() -> roleRepository.save(new Role(roleName)));
-        user.setRoles(Set.of(role));
+        // Use a mutable collection for JPA-managed role associations.
+        Set<Role> roles = new HashSet<>();
+        roles.add(role);
+        user.setRoles(roles);
         User saved = userRepository.save(user);
 
         auditService.log(
