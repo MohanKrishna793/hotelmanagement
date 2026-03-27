@@ -52,6 +52,13 @@ a {
     flex-shrink: 0;
 }
 
+.brand-wordmark {
+    height: 22px;
+    width: auto;
+    display: block;
+    flex-shrink: 0;
+}
+
 .top-nav nav {
     display: flex;
     align-items: center;
@@ -713,6 +720,10 @@ a {
     .brand-logo {
         width: 20px;
         height: 20px;
+    }
+
+    .brand-wordmark {
+        height: 18px;
     }
 }
 

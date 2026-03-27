@@ -29,28 +29,21 @@
     }
 
     .logo-container {
-      display: inline-flex;
-      align-items: center;
-      gap: 12px;
+      display: inline-block;
+      text-align: center;
     }
 
-    .logo-icon {
-      width: 44px; height: 44px;
-      border: 1.5px solid #c9a96e;
-      border-radius: 2px;
-      display: flex; align-items: center; justify-content: center;
-    }
-
-    .logo-name {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 22px; font-weight: 400;
-      color: #f5edd8; letter-spacing: 0.12em;
-      text-transform: uppercase; line-height: 1;
+    .logo-wordmark {
+      width: 260px;
+      max-width: 100%;
+      height: auto;
+      display: block;
+      margin: 0 auto;
     }
 
     .logo-tagline {
       font-size: 9px; letter-spacing: 0.25em;
-      color: #c9a96e; text-transform: uppercase; margin-top: 4px;
+      color: #c9a96e; text-transform: uppercase; margin-top: 8px;
     }
 
     /* ── HERO ── */
@@ -351,17 +344,8 @@
   <!-- HEADER -->
   <div class="header">
     <div class="logo-container">
-      <div class="logo-icon">
-        <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="8" cy="9" r="5" stroke="#c9a96e" stroke-width="1.2"/>
-          <circle cx="8" cy="9" r="2" fill="#c9a96e" opacity="0.5"/>
-          <path d="M12 12L19 19M19 19L16.5 16.5M19 19V16.5H16.5" stroke="#c9a96e" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </div>
-      <div class="logo-text">
-        <div class="logo-name">Smart Hotel</div>
-        <div class="logo-tagline">Management &nbsp;·&nbsp; Est. 2024</div>
-      </div>
+      <img src="/logo-wordmark.svg" alt="SmartHotel" class="logo-wordmark"/>
+      <div class="logo-tagline">Management &nbsp;·&nbsp; Est. 2024</div>
     </div>
   </div>
 

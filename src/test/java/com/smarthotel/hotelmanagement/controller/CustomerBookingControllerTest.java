@@ -45,10 +45,10 @@ class CustomerBookingControllerTest {
         req.setCheckInDate(LocalDate.now().plusDays(1));
         req.setCheckOutDate(LocalDate.now().plusDays(2));
         req.setPaymentMethod("PAY_AT_HOTEL");
-        when(customerBookingService.createBookingForUser(any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        when(customerBookingService.createBookingForUser(any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(CreateBookingApiResult.forPayAtHotel(booking));
 
-        Object out = controller.createBooking(authentication, "idemp-1", req);
+        Object out = controller.createBooking(authentication, "https://hotelmanagement-production-b642.up.railway.app", "idemp-1", req);
         assertEquals(booking, out);
     }
 
@@ -59,10 +59,10 @@ class CustomerBookingControllerTest {
         req.setCheckInDate(LocalDate.now().plusDays(1));
         req.setCheckOutDate(LocalDate.now().plusDays(2));
         req.setPaymentMethod("STRIPE");
-        when(customerBookingService.createBookingForUser(any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        when(customerBookingService.createBookingForUser(any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(CreateBookingApiResult.forStripeRedirect("https://checkout.stripe.com/test", "cs_test_1"));
 
-        Object out = controller.createBooking(authentication, "idemp-1", req);
+        Object out = controller.createBooking(authentication, "https://hotelmanagement-production-b642.up.railway.app", "idemp-1", req);
         assertInstanceOf(Map.class, out);
         @SuppressWarnings("unchecked")
         Map<String, String> m = (Map<String, String>) out;
@@ -72,8 +72,13 @@ class CustomerBookingControllerTest {
     @Test
     void verifyStripeDelegatesToService() {
         Booking booking = new Booking();
-        when(customerBookingService.verifyStripePayment("test@example.com", "cs_test_123")).thenReturn(booking);
-        Booking out = controller.verifyStripePayment(authentication, Map.of("session_id", "cs_test_123"));
+        when(customerBookingService.verifyStripePayment("test@example.com", "cs_test_123", "https://hotelmanagement-production-b642.up.railway.app"))
+                .thenReturn(booking);
+        Booking out = controller.verifyStripePayment(
+                authentication,
+                "https://hotelmanagement-production-b642.up.railway.app",
+                Map.of("session_id", "cs_test_123")
+        );
         assertEquals(booking, out);
     }
 
