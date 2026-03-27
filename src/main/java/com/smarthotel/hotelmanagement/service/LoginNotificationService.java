@@ -65,14 +65,15 @@ public class LoginNotificationService {
 
     private void sendLoginEmail(String name, String toEmail) {
         if (toEmail == null || toEmail.isBlank()) return;
-        if (!StringUtils.hasText(mailUsername) || !StringUtils.hasText(mailFrom)) {
-            log.debug("Login email skipped: set SMTP_USERNAME and MAIL_FROM (same as registration/booking email).");
+        if (!StringUtils.hasText(mailUsername)) {
+            log.warn("Login email skipped: missing SMTP_USERNAME.");
             return;
         }
+        String effectiveFrom = StringUtils.hasText(mailFrom) ? mailFrom : mailUsername;
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, StandardCharsets.UTF_8.name());
-            helper.setFrom(mailFrom, mailFromName);
+            helper.setFrom(effectiveFrom, mailFromName);
             helper.setTo(toEmail);
             helper.setSubject(EMAIL_SUBJECT);
             helper.setText(buildLoginEmailBody(name), true);

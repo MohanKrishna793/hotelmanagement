@@ -115,14 +115,15 @@ public class NotificationService {
     }
 
     private void sendRegistrationEmail(String name, String toEmail) {
-        if (!StringUtils.hasText(mailUsername) || !StringUtils.hasText(mailFrom)) {
-            log.debug("SMTP not configured; skipping registration welcome email.");
+        if (!StringUtils.hasText(mailUsername)) {
+            log.warn("SMTP not configured (missing spring.mail.username); skipping registration welcome email.");
             return;
         }
+        String effectiveFrom = StringUtils.hasText(mailFrom) ? mailFrom : mailUsername;
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, StandardCharsets.UTF_8.name());
-            helper.setFrom(mailFrom, mailFromName);
+            helper.setFrom(effectiveFrom, mailFromName);
             helper.setTo(toEmail);
             helper.setSubject("Welcome to Smart Hotel Management");
             helper.setText(buildRegistrationEmailBody(name), true);
@@ -227,10 +228,11 @@ public class NotificationService {
     }
 
     public void sendConfirmationEmail(BookingNotificationContext ctx) {
-        if (!StringUtils.hasText(mailUsername) || !StringUtils.hasText(mailFrom)) {
-            log.debug("SMTP not configured (mail username/from empty); skipping confirmation email.");
+        if (!StringUtils.hasText(mailUsername)) {
+            log.warn("SMTP not configured (missing spring.mail.username); skipping confirmation email.");
             return;
         }
+        String effectiveFrom = StringUtils.hasText(mailFrom) ? mailFrom : mailUsername;
         String email = ctx.guestEmail();
         if (!StringUtils.hasText(email) || !isValidEmail(email)) {
             log.warn("Invalid or missing guest email for notification: {}", email != null ? "present" : "null");
@@ -239,7 +241,7 @@ public class NotificationService {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, StandardCharsets.UTF_8.name());
-            helper.setFrom(mailFrom, mailFromName);
+            helper.setFrom(effectiveFrom, mailFromName);
             helper.setTo(email);
             helper.setSubject("Booking Confirmation & Bill – Smart Hotel");
             helper.setText(buildEmailBody(ctx), true);
@@ -290,11 +292,15 @@ public class NotificationService {
     }
 
     private void sendCancellationEmail(BookingNotificationContext ctx, double refund) {
-        if (!StringUtils.hasText(mailUsername) || !StringUtils.hasText(mailFrom)) return;
+        if (!StringUtils.hasText(mailUsername)) {
+            log.warn("SMTP not configured (missing spring.mail.username); skipping cancellation email.");
+            return;
+        }
+        String effectiveFrom = StringUtils.hasText(mailFrom) ? mailFrom : mailUsername;
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, StandardCharsets.UTF_8.name());
-            helper.setFrom(mailFrom, mailFromName);
+            helper.setFrom(effectiveFrom, mailFromName);
             helper.setTo(ctx.guestEmail());
             helper.setSubject("Booking Cancelled – Smart Hotel");
             String name = StringUtils.hasText(ctx.guestName()) ? ctx.guestName() : "Guest";
