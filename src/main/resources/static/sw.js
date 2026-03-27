@@ -1,4 +1,4 @@
-const CACHE_NAME = "smarthotel-static-v6";
+const CACHE_NAME = "smarthotel-static-v7";
 const ASSETS = [
   "/styles.css",
   "/app.js",
@@ -6,6 +6,7 @@ const ASSETS = [
   "/icon.svg",
   "/logo-wordmark.svg",
   "/logo-wordmark.svg?v=2",
+  "/icon.svg?v=3",
   "/my-bookings.html",
   "/admin.html",
   "/admin.js"
