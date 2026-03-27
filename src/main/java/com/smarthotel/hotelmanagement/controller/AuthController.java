@@ -110,7 +110,7 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<?> registerCustomer(@Valid @RequestBody RegisterRequest request) {
-        if (userRepository.existsByEmail(request.getEmail())) {
+        if (userRepository.existsByEmailIgnoreCase(request.getEmail())) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(Map.of("message", "Email already registered"));
         }
@@ -157,7 +157,11 @@ public class AuthController {
             SecurityContextHolder.getContext().setAuthentication(authentication);
             String token = tokenProvider.generateToken(authentication);
 
-            userRepository.findByEmail(request.getEmail()).ifPresent(loginNotificationService::sendLoginNotifications);
+            String authEmail = authentication.getName();
+            userRepository.findByEmailIgnoreCase(authEmail).ifPresentOrElse(user -> {
+                log.info("Triggering login notifications for {}", authEmail);
+                loginNotificationService.sendLoginNotifications(user);
+            }, () -> log.warn("Login notifications skipped: user not found for {}", authEmail));
             log.info("User logged in successfully: {}", request.getEmail());
 
             return ResponseEntity.ok(Map.of(
