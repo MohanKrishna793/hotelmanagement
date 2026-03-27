@@ -1,16 +1,16 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="SmartHotel logo">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-label="SmartHotel app icon">
   <defs>
     <linearGradient id="buildingGradient" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0%" stop-color="#3ddad7"/>
       <stop offset="100%" stop-color="#2f6bff"/>
     </linearGradient>
   </defs>
-  <rect x="5" y="6" width="54" height="54" rx="12" fill="#0f1422"/>
-  <path d="M14 23.5 32 12l18 11.5v23.5a4 4 0 0 1-4 4H18a4 4 0 0 1-4-4z" fill="url(#buildingGradient)"/>
-  <rect x="28.5" y="36" width="7" height="15" rx="2" fill="#d9ecff"/>
-  <rect x="19.5" y="28" width="5.5" height="5.5" rx="1.2" fill="#d9ecff"/>
-  <rect x="39" y="28" width="5.5" height="5.5" rx="1.2" fill="#d9ecff"/>
-  <rect x="19.5" y="37" width="5.5" height="5.5" rx="1.2" fill="#d9ecff"/>
-  <rect x="39" y="37" width="5.5" height="5.5" rx="1.2" fill="#d9ecff"/>
-  <circle cx="50.5" cy="13.5" r="4" fill="#f5c15b"/>
+  <rect x="12" y="12" width="136" height="136" rx="30" fill="#0f1422"/>
+  <path d="M34 63 80 34l46 29v61a10 10 0 0 1-10 10H44a10 10 0 0 1-10-10z" fill="url(#buildingGradient)"/>
+  <rect x="71" y="95" width="18" height="39" rx="4" fill="#d9ecff"/>
+  <rect x="48" y="74" width="13" height="13" rx="2.6" fill="#d9ecff"/>
+  <rect x="99" y="74" width="13" height="13" rx="2.6" fill="#d9ecff"/>
+  <rect x="48" y="97" width="13" height="13" rx="2.6" fill="#d9ecff"/>
+  <rect x="99" y="97" width="13" height="13" rx="2.6" fill="#d9ecff"/>
+  <circle cx="128" cy="30" r="11" fill="#f5c15b"/>
 </svg>
