@@ -1,17 +1,5 @@
 // Existing admin dashboard logic moved from app.js
 const API_BASE = '';
-// Pre-fill greeting; user sends "join <sandbox>" first, then sends the greeting to get menu.
-const WHATSAPP_NUMBER = '14155238886';
-const WHATSAPP_SANDBOX_JOIN = 'join watch-swept';
-const WHATSAPP_GREETING = 'Hello 👋, I need help with hotel booking on Smart Hotel Management.';
-
-function initWhatsAppFloat() {
-    const el = document.getElementById('whatsapp-float');
-    if (!el || el.tagName !== 'A') return;
-    el.href = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(WHATSAPP_GREETING)}`;
-    const tooltip = el.querySelector('.whatsapp-float-tooltip');
-    if (tooltip) tooltip.textContent = 'First send: ' + WHATSAPP_SANDBOX_JOIN + ' to connect. Then send the pre-filled message to chat.';
-}
 
 function showToast(message, isError = false) {
     const toast = document.getElementById('toast');
@@ -894,7 +882,6 @@ function bindCreateBookingForm() {
 }
 
 window.addEventListener('load', () => {
-    initWhatsAppFloat();
     bindCreateBookingForm();
     checkAdminAccess();
 });

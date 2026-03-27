@@ -46,10 +46,10 @@
             <input type="password" id="register-password" class="form-input" placeholder="Password" required autocomplete="new-password">
             <label for="register-confirmPassword" class="login-label">Confirm Password</label>
             <input type="password" id="register-confirmPassword" class="form-input" placeholder="Confirm password" required autocomplete="new-password">
-            <label for="register-phone" class="login-label">Phone (for WhatsApp confirmation)</label>
-            <input type="tel" id="register-phone" class="form-input" placeholder="e.g. 9876543210 or +919876543210" autocomplete="tel" minlength="10" maxlength="15" title="10–15 digits; optional. If provided, confirmation is sent here on WhatsApp.">
+            <label for="register-phone" class="login-label">Phone</label>
+            <input type="tel" id="register-phone" class="form-input" placeholder="e.g. 9876543210 or +919876543210" autocomplete="tel" minlength="10" maxlength="15" title="10–15 digits;">
             <button type="submit" class="primary-btn login-submit-btn">Register</button>
-            <p class="login-modal-hint" style="margin-top: 8px; font-size: 12px;">Confirmation will be sent to your email and, if you provide a valid phone, to WhatsApp (when server has SMTP and Twilio configured).</p>
+            <p class="login-modal-hint" style="margin-top: 8px; font-size: 12px;">Confirmation will be sent to your email.</p>
         </form>
         <p class="login-modal-hint">Already have an account? <button type="button" class="link-btn" onclick="closeRegisterModal(); openLoginModal();">Login</button></p>
     </div>
@@ -149,12 +149,6 @@
 </main>
 
 <div id="toast" class="toast hidden"></div>
-
-<!-- Floating WhatsApp: visible on all pages, opens wa.me with pre-filled message -->
-<a href="#" id="whatsapp-float" class="whatsapp-float" target="_blank" rel="noopener noreferrer" aria-label="Chat on WhatsApp">
-    <span class="whatsapp-float-tooltip">First send: join watch-swept to connect. Then send the pre-filled message to chat.</span>
-    <span class="whatsapp-float-icon" aria-hidden="true"></span>
-</a>
 
 <script src="/app.js"></script>
 </body>

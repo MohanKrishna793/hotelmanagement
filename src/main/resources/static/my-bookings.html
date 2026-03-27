@@ -51,29 +51,38 @@
             <p id="my-bookings-empty" style="display: none; opacity: 0.9;">No bookings yet. <a href="/index.html">Book a room</a> and they will appear here.</p>
         </div>
     </section>
+
+    <section id="booking-history" class="panel panel-full" style="margin-top: 24px;">
+        <div class="panel-header">
+            <h2>Booking History</h2>
+            <button class="secondary-btn" onclick="loadBookingHistory()">Refresh</button>
+        </div>
+        <div id="booking-history-content" style="display: none;">
+            <table class="data-table">
+                <thead>
+                <tr>
+                    <th>Booking ID</th>
+                    <th>Hotel Name</th>
+                    <th>Room Type</th>
+                    <th>Check-in Date</th>
+                    <th>Check-out Date</th>
+                    <th>Status</th>
+                    <th>Payment</th>
+                    <th>Total</th>
+                </tr>
+                </thead>
+                <tbody id="booking-history-body">
+                </tbody>
+            </table>
+            <p id="booking-history-empty" style="display: none; opacity: 0.9;">No cancelled/completed bookings yet.</p>
+        </div>
+    </section>
 </main>
 
 <div id="toast" class="toast hidden"></div>
 
-<a href="#" id="whatsapp-float" class="whatsapp-float" target="_blank" rel="noopener noreferrer" aria-label="Chat on WhatsApp">
-    <span class="whatsapp-float-tooltip">First send: join watch-swept to connect. Then send the pre-filled message to chat.</span>
-    <span class="whatsapp-float-icon" aria-hidden="true"></span>
-</a>
-
 <script>
 const API_BASE = '';
-// Pre-fill greeting; user sends "join <sandbox>" first, then sends the greeting to get menu.
-const WHATSAPP_NUMBER = '14155238886';
-const WHATSAPP_SANDBOX_JOIN = 'join watch-swept';
-const WHATSAPP_GREETING = 'Hello 👋, I need help with hotel booking on Smart Hotel Management.';
-
-function initWhatsAppFloat() {
-    const el = document.getElementById('whatsapp-float');
-    if (!el || el.tagName !== 'A') return;
-    el.href = 'https://wa.me/' + WHATSAPP_NUMBER + '?text=' + encodeURIComponent(WHATSAPP_GREETING);
-    const tooltip = el.querySelector('.whatsapp-float-tooltip');
-    if (tooltip) tooltip.textContent = 'First send: ' + WHATSAPP_SANDBOX_JOIN + ' to connect. Then send the pre-filled message to chat.';
-}
 
 function showToast(message, isError = false) {
     const toast = document.getElementById('toast');
@@ -125,16 +134,19 @@ async function loadMyBookings() {
     const token = localStorage.getItem('jwt');
     const authRequired = document.getElementById('dashboard-auth-required');
     const content = document.getElementById('dashboard-content');
+    const historyContent = document.getElementById('booking-history-content');
     const tbody = document.getElementById('my-bookings-body');
     const empty = document.getElementById('my-bookings-empty');
 
     if (!token) {
         if (authRequired) authRequired.style.display = 'block';
         if (content) content.style.display = 'none';
+        if (historyContent) historyContent.style.display = 'none';
         return;
     }
     if (authRequired) authRequired.style.display = 'none';
     if (content) content.style.display = 'block';
+    if (historyContent) historyContent.style.display = 'block';
 
     try {
         const res = await fetch(`${API_BASE}/api/customer/bookings`, {
@@ -182,6 +194,56 @@ async function loadMyBookings() {
     }
 }
 
+async function loadBookingHistory() {
+    const token = localStorage.getItem('jwt');
+    const tbody = document.getElementById('booking-history-body');
+    const empty = document.getElementById('booking-history-empty');
+    const content = document.getElementById('booking-history-content');
+    if (!token) {
+        if (content) content.style.display = 'none';
+        return;
+    }
+    if (content) content.style.display = 'block';
+
+    try {
+        const res = await fetch(`${API_BASE}/api/customer/bookings/history`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) {
+            if (res.status === 401) {
+                localStorage.removeItem('jwt');
+                location.reload();
+            }
+            return;
+        }
+        const bookings = await res.json();
+        if (!tbody) return;
+        tbody.innerHTML = '';
+        if (empty) empty.style.display = bookings.length ? 'none' : 'block';
+
+        bookings.forEach(b => {
+            const tr = document.createElement('tr');
+            const status = b.status || '-';
+            const payment = b.paymentStatus || 'PENDING';
+            const paymentClass = payment === 'PAID' ? 'status-paid' : (payment === 'PAY_AT_HOTEL' ? 'status-pay-hotel' : 'status-pending');
+            tr.innerHTML = `
+                <td>${b.id}</td>
+                <td>${b.room && b.room.hotel ? b.room.hotel.name : '-'}</td>
+                <td>${b.room ? b.room.type : '-'}</td>
+                <td>${b.checkInDate || '-'}</td>
+                <td>${b.checkOutDate || '-'}</td>
+                <td>${status.replaceAll('_', ' ')}</td>
+                <td><span class="status-chip ${paymentClass}">${payment.replaceAll('_', ' ')}</span></td>
+                <td>₹${b.totalCost != null ? Number(b.totalCost).toFixed(2) : '-'}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    } catch (e) {
+        console.error(e);
+        showToast('Failed to load booking history', true);
+    }
+}
+
 async function cancelMyBooking(bookingId) {
     if (!bookingId || !confirm('Cancel this booking? The room will become available again.')) return;
     const token = localStorage.getItem('jwt');
@@ -201,6 +263,7 @@ async function cancelMyBooking(bookingId) {
         }
         showToast('Booking cancelled');
         loadMyBookings();
+        loadBookingHistory();
     } catch (e) {
         console.error(e);
         showToast(e.message || 'Failed to cancel booking', true);
@@ -210,9 +273,9 @@ async function cancelMyBooking(bookingId) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    initWhatsAppFloat();
     updateHeader();
     loadMyBookings();
+    loadBookingHistory();
 });
 </script>
 </body>

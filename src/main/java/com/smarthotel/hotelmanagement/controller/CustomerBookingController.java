@@ -96,6 +96,12 @@ public class CustomerBookingController {
         return customerBookingService.getBookingsForUser(email);
     }
 
+    @GetMapping("/history")
+    public List<Booking> getBookingHistory(Authentication authentication) {
+        String email = authentication.getName();
+        return customerBookingService.getBookingHistoryForUser(email);
+    }
+
     @PatchMapping("/{id}/cancel")
     public Booking cancelBooking(Authentication authentication, @PathVariable Long id) {
         String email = authentication.getName();

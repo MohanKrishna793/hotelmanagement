@@ -1,38 +1,31 @@
 package com.smarthotel.hotelmanagement.service;
 
 import com.smarthotel.hotelmanagement.entity.User;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 /**
- * Sends login success notifications by email and (optional) WhatsApp.
+ * Sends login success notification by email.
  * Email: configure spring.mail.* in application.properties.
- * WhatsApp: sent via NotificationService; includes sandbox join instruction (join watch-swept).
  */
 @Service
 public class LoginNotificationService {
 
-    private static final Logger log = LoggerFactory.getLogger(LoginNotificationService.class);
     private static final String EMAIL_SUBJECT = "Login Successful – Smart Hotel Management System";
 
     private final NotificationService notificationService;
 
-    @Value("${app.whatsapp.enabled:true}")
-    private boolean whatsappEnabled;
-
-    @Value("${app.whatsapp.sandbox-join:join watch-swept}")
-    private String whatsappSandboxJoin;
+    @Value("${app.base-url:https://hotelmanagement-production-o2db.up.railway.app}")
+    private String appBaseUrl;
 
     public LoginNotificationService(NotificationService notificationService) {
         this.notificationService = notificationService;
     }
 
     /**
-     * Sends email and optionally WhatsApp greeting after successful login.
+     * Sends email after successful login.
      * Runs asynchronously so login response is not delayed.
      */
     @Async
@@ -40,10 +33,8 @@ public class LoginNotificationService {
         if (user == null) return;
         String name = user.getFullName() != null ? user.getFullName() : "Guest";
         String email = user.getEmail();
-        String phone = user.getPhone();
 
         sendLoginEmail(name, email);
-        sendLoginWhatsApp(name, phone);
     }
 
     private void sendLoginEmail(String name, String toEmail) {
@@ -53,6 +44,7 @@ public class LoginNotificationService {
 
     private String buildLoginEmailBody(String name) {
         String safeName = StringUtils.hasText(name) ? name.trim() : "Guest";
+        String appUrl = normalizeAppBaseUrl();
         return """
             <div style="margin:0;padding:0;background:#0f0c09;font-family:Arial,sans-serif;">
               <div style="max-width:640px;margin:0 auto;background:#faf8f4;">
@@ -77,7 +69,7 @@ public class LoginNotificationService {
                     If this login was not initiated by you, please contact our support team immediately.
                   </p>
                   <div style="text-align:center;margin:26px 0 30px;">
-                    <a href="http://localhost:8080" style="display:inline-block;background:#1a1410;color:#f5edd8;text-decoration:none;padding:14px 30px;font-size:11px;letter-spacing:2px;text-transform:uppercase;border:1px solid #3a2f22;">
+                    <a href="%s" style="display:inline-block;background:#1a1410;color:#f5edd8;text-decoration:none;padding:14px 30px;font-size:11px;letter-spacing:2px;text-transform:uppercase;border:1px solid #3a2f22;">
                       Continue to Smart Hotel
                     </a>
                   </div>
@@ -96,23 +88,12 @@ public class LoginNotificationService {
                 </div>
               </div>
             </div>
-            """.formatted(safeName);
+            """.formatted(safeName, appUrl);
     }
 
-    private void sendLoginWhatsApp(String name, String phone) {
-        if (phone == null || phone.isBlank()) return;
-        if (!whatsappEnabled) {
-            log.debug("Login WhatsApp skipped: app.whatsapp.enabled=false");
-            return;
-        }
-        String body = "Hello " + (StringUtils.hasText(name) ? name : "there") + " 👋 Welcome to Smart Hotel Management System. Thank you for logging in. We're happy to assist you with bookings, hotels, and travel needs."
-                + "\n\nTo chat with our bot on WhatsApp, type and send exactly:\n" + whatsappSandboxJoin
-                + "\n(Sandbox membership lasts 72 hours. You can rejoin anytime.)";
-        try {
-            notificationService.sendWhatsAppMessage(phone, body);
-            log.info("Login WhatsApp sent to {} for user {}", phone, name);
-        } catch (Exception e) {
-            log.warn("Failed to send login WhatsApp to {}: {}", phone, e.getMessage());
-        }
+    private String normalizeAppBaseUrl() {
+        String base = StringUtils.hasText(appBaseUrl) ? appBaseUrl.trim() : "https://hotelmanagement-production-o2db.up.railway.app";
+        return base.replaceAll("/+$", "");
     }
+
 }

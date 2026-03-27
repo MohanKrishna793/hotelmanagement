@@ -3,7 +3,7 @@ package com.smarthotel.hotelmanagement.dto;
 import java.time.LocalDate;
 
 /**
- * Data required to send post-booking notifications (email and WhatsApp).
+ * Data required to send post-booking email notifications.
  * Built after a booking is saved so async notification does not depend on persistence layer.
  */
 public record BookingNotificationContext(

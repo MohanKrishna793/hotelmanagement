@@ -85,21 +85,7 @@ async function loadStripeKey() {
     return stripeKeyFetchInFlight;
 }
 
-// WhatsApp floating button: pre-fill greeting; user must send "join <sandbox>" first to connect, then send the greeting to get menu.
-const WHATSAPP_NUMBER = '14155238886';
-const WHATSAPP_SANDBOX_JOIN = 'join watch-swept';
-const WHATSAPP_GREETING = 'Hello 👋, I need help with hotel booking on Smart Hotel Management.';
 let deferredInstallPrompt = null;
-
-function initWhatsAppFloat() {
-    const el = document.getElementById('whatsapp-float');
-    if (!el || el.tagName !== 'A') return;
-    // Pre-fill the greeting so user sends it (after joining sandbox) to get the chatbot menu.
-    const text = encodeURIComponent(WHATSAPP_GREETING);
-    el.href = `https://wa.me/${WHATSAPP_NUMBER}?text=${text}`;
-    const tooltip = el.querySelector('.whatsapp-float-tooltip');
-    if (tooltip) tooltip.textContent = 'First send: ' + WHATSAPP_SANDBOX_JOIN + ' to connect. Then send the pre-filled message to chat.';
-}
 
 function isIosDevice() {
     return /iphone|ipad|ipod/i.test(navigator.userAgent);
@@ -851,7 +837,7 @@ async function customerRegister() {
             const msg = data.message || (data.errors ? 'Validation: ' + data.errors : '') || 'Registration failed';
             throw new Error(typeof msg === 'string' ? msg : 'Registration failed');
         }
-        showToast(data.message || 'Registration successful. Check your email and WhatsApp for confirmation.');
+        showToast(data.message || 'Registration successful. Check your email for confirmation.');
         closeRegisterModal();
         document.getElementById('register-fullName').value = '';
         document.getElementById('register-email').value = '';
@@ -894,7 +880,6 @@ if (document.readyState === 'loading') {
 window.addEventListener('load', () => {
     registerServiceWorker();
     initInstallPrompt();
-    initWhatsAppFloat();
     loadStates();
     loadStripeKey();
     handleStripePaymentCancelled();

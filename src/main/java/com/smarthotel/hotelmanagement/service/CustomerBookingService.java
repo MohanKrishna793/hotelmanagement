@@ -284,7 +284,18 @@ public class CustomerBookingService {
         userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
 
-        return bookingRepository.findByGuest_EmailOrderByCheckInDateDesc(userEmail);
+        return bookingRepository.findByGuest_EmailOrderByCheckInDateDesc(userEmail).stream()
+                .filter(b -> b.getStatus() != BookingStatus.CANCELLED && b.getStatus() != BookingStatus.COMPLETED)
+                .toList();
+    }
+
+    public List<Booking> getBookingHistoryForUser(String userEmail) {
+        userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
+
+        return bookingRepository.findByGuest_EmailOrderByCheckInDateDesc(userEmail).stream()
+                .filter(b -> b.getStatus() == BookingStatus.CANCELLED || b.getStatus() == BookingStatus.COMPLETED)
+                .toList();
     }
 
     /**

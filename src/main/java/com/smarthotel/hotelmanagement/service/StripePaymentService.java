@@ -40,7 +40,7 @@ public class StripePaymentService {
     @Value("${app.stripe.enabled:false}")
     private boolean enabled;
 
-    @Value("${app.base-url:http://localhost:8080}")
+    @Value("${app.base-url:https://hotelmanagement-production-o2db.up.railway.app}")
     private String baseUrl;
 
     @Value("${app.stripe.webhook-secret:}")

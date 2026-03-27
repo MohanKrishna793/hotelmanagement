@@ -71,7 +71,7 @@ public class AuthController {
         private String email;
         @NotBlank(message = "Password is required")
         private String password;
-        @NotBlank(message = "Phone number is required for WhatsApp updates")
+        @NotBlank(message = "Phone number is required")
         private String phone;
 
         public String getFullName() { return fullName; }
@@ -138,7 +138,7 @@ public class AuthController {
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(Map.of(
-                        "message", "Registration successful. Check your email and WhatsApp for confirmation.",
+                        "message", "Registration successful. Check your email for confirmation.",
                         "email", user.getEmail(),
                         "fullName", user.getFullName()
                 ));
