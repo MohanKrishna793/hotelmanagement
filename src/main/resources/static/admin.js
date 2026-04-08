@@ -17,37 +17,76 @@ function scrollToSection(id) {
     }
 }
 
-async function loadRooms() {
+async function loadRooms(flashId) {
     try {
         const token = localStorage.getItem('jwt');
-        if (!token) {
-            showToast('Please log in first (JWT required for admin).', true);
-            return;
-        }
+        if (!token) return;
+
         const res = await fetch(`${API_BASE}/api/rooms`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
+        if (!res.ok) throw new Error('Failed to load rooms');
         const rooms = await res.json();
-        const tbody = document.getElementById('rooms-table-body');
-        if (tbody) tbody.innerHTML = '';
 
-        rooms.forEach(r => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td>${r.id}</td>
-                <td>${r.roomNumber}</td>
-                <td>${r.type}</td>
-                <td>₹${r.price.toFixed(2)}</td>
-                <td>${r.available ? 'Yes' : 'No'}</td>
-            `;
-            tbody.appendChild(tr);
-        });
-
+        // Stat card
         const statRooms = document.getElementById('stat-total-rooms');
         if (statRooms) statRooms.textContent = rooms.length;
+
+        // Count badge
+        const badge = document.getElementById('rooms-count-badge');
+        if (badge) badge.textContent = rooms.length;
+
+        // Inline list table
+        const tbody = document.getElementById('rooms-table-body');
+        if (tbody) {
+            tbody.innerHTML = '';
+            if (rooms.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#64748b;padding:16px;">No rooms yet — add one above</td></tr>';
+            } else {
+                rooms.forEach(r => {
+                    const avail = r.available
+                        ? '<span style="color:#10b981;font-weight:600;">✓ Yes</span>'
+                        : '<span style="color:#f87171;font-weight:600;">✗ No</span>';
+                    const tr = document.createElement('tr');
+                    if (flashId && r.id === flashId) tr.classList.add('row-new');
+                    tr.innerHTML = `
+                        <td>${r.id}</td>
+                        <td><strong>${r.roomNumber || '-'}</strong></td>
+                        <td><span class="room-type-badge room-type-${(r.type||'').toLowerCase()}">${r.type || '-'}</span></td>
+                        <td>₹${r.price != null ? Number(r.price).toLocaleString('en-IN',{maximumFractionDigits:0}) : '-'}</td>
+                        <td>${avail}</td>
+                        <td><button class="danger-btn-sm" onclick="deleteRoom(${r.id})">Remove</button></td>`;
+                    tbody.appendChild(tr);
+                });
+                if (flashId) {
+                    const newRow = tbody.querySelector('.row-new');
+                    if (newRow) newRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }
+            }
+        }
     } catch (e) {
         console.error(e);
-        showToast('Failed to load rooms', true);
+    }
+}
+
+async function deleteRoom(roomId) {
+    if (!confirm('Remove this room? This cannot be undone.')) return;
+    try {
+        const token = localStorage.getItem('jwt');
+        if (!token) { showToast('Please log in first.', true); return; }
+        const res = await fetch(`${API_BASE}/api/rooms/${roomId}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.message || 'Failed to remove room');
+        }
+        showToast('Room removed');
+        loadRooms();
+        loadAvailableRoomsCount();
+    } catch (e) {
+        showToast(e.message, true);
     }
 }
 
@@ -778,13 +817,15 @@ async function createRoom() {
             throw new Error(err.message || 'Failed to create room');
         }
 
-        showToast('Room created');
+        const room = await res.json();
+        showToast(`Room created (ID: ${room.id})`);
         document.getElementById('room-number').value = '';
         if (typeEl && typeEl.tagName === 'SELECT') typeEl.value = 'DELUXE';
         document.getElementById('room-price').value = '';
         document.getElementById('room-available').checked = true;
 
-        loadDashboard();
+        loadRooms(room.id);
+        loadAvailableRoomsCount();
     } catch (e) {
         console.error(e);
         showToast(e.message, true);

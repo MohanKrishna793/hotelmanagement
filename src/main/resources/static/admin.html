@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Smart Hotel Admin</title>
-    <link rel="stylesheet" href="/styles.css?v=12">
+    <link rel="stylesheet" href="/styles.css?v=13">
     <!-- Chart.js loaded with multiple fallbacks to handle CDN failures -->
     <script>
     window._chartJsLoaded = false;
@@ -232,21 +232,9 @@
             <h2>Rooms</h2>
             <button class="secondary-btn" onclick="loadRooms()">Refresh</button>
         </div>
-        <table class="data-table">
-            <thead>
-            <tr>
-                <th>ID</th>
-                <th>Number</th>
-                <th>Type</th>
-                <th>Price</th>
-                <th>Available</th>
-            </tr>
-            </thead>
-            <tbody id="rooms-table-body">
-            </tbody>
-        </table>
 
-        <h3>Add Room</h3>
+        <!-- Add Room form FIRST -->
+        <h3 class="inline-section-title">Add Room</h3>
         <form class="form-grid form-grid-admin" onsubmit="event.preventDefault(); createRoom();">
             <input type="text" id="room-number" class="form-input" placeholder="Room Number (e.g. 101)" required>
             <select id="room-type" class="form-input form-select">
@@ -264,6 +252,27 @@
             </label>
             <button type="submit" class="primary-btn">Save Room</button>
         </form>
+
+        <!-- Rooms list appears right here after save -->
+        <div class="inline-list-header">
+            <h3 class="inline-section-title" style="margin:0;">Rooms Added</h3>
+            <span id="rooms-count-badge" class="count-badge">0</span>
+        </div>
+        <div class="inline-list-scroll">
+            <table class="data-table">
+                <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Number</th>
+                    <th>Type</th>
+                    <th>Price</th>
+                    <th>Available</th>
+                    <th></th>
+                </tr>
+                </thead>
+                <tbody id="rooms-table-body"></tbody>
+            </table>
+        </div>
     </section>
 
     <section id="guests" class="panel">
@@ -434,7 +443,7 @@
 
 <div id="toast" class="toast hidden"></div>
 
-<script src="/admin.js?v=12"></script>
+<script src="/admin.js?v=13"></script>
 </body>
 </html>
 
