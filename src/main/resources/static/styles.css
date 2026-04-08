@@ -863,6 +863,83 @@ a {
     }
 }
 
+/* ── Inline list (below form) ─────────────────────────────── */
+.inline-section-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin: 20px 0 10px 0;
+}
+
+.inline-list-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 22px;
+    margin-bottom: 10px;
+    padding-top: 18px;
+    border-top: 1px solid rgba(255,255,255,0.07);
+}
+
+.count-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 7px;
+    background: rgba(245,158,11,0.18);
+    color: #f59e0b;
+    border: 1px solid rgba(245,158,11,0.35);
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.inline-list-scroll {
+    max-height: 280px;
+    overflow-y: auto;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.07);
+}
+
+.inline-list-scroll .data-table thead {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: #1a2235;
+}
+
+/* small danger button used in inline list rows */
+.danger-btn-sm {
+    padding: 3px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #f87171;
+    background: rgba(239,68,68,0.12);
+    border: 1px solid rgba(239,68,68,0.3);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s;
+    white-space: nowrap;
+}
+.danger-btn-sm:hover {
+    background: rgba(239,68,68,0.25);
+}
+
+/* new-row flash animation */
+@keyframes rowFlash {
+    0%   { background: rgba(245,158,11,0.22); }
+    100% { background: transparent; }
+}
+
+.row-new {
+    animation: rowFlash 1.6s ease-out forwards;
+}
+
 /* ── Chart cards ──────────────────────────────────────────── */
 .chart-card {
     background: rgba(255, 255, 255, 0.04);

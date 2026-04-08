@@ -173,19 +173,9 @@
             <h2>Hotels</h2>
             <button class="secondary-btn" onclick="loadHotels()">Refresh</button>
         </div>
-        <table class="data-table">
-            <thead>
-            <tr>
-                <th>ID</th>
-                <th>Name</th>
-                <th>City</th>
-                <th>Country</th>
-            </tr>
-            </thead>
-            <tbody id="hotels-table-body">
-            </tbody>
-        </table>
-        <h3>Add Hotel</h3>
+
+        <!-- Add Hotel form FIRST so the list appears right below after save -->
+        <h3 class="inline-section-title">Add Hotel</h3>
         <form class="form-grid form-grid-admin" onsubmit="event.preventDefault(); createHotel();">
             <input type="text" id="hotel-name" class="form-input" placeholder="Hotel name" required>
             <input type="text" id="hotel-address" class="form-input" placeholder="Address">
@@ -197,6 +187,25 @@
             <input type="number" id="hotel-base-price" class="form-input" placeholder="Base price" step="0.01">
             <button type="submit" class="primary-btn">Save Hotel</button>
         </form>
+
+        <!-- Hotels list appears right here after save -->
+        <div class="inline-list-header">
+            <h3 class="inline-section-title" style="margin:0;">Hotels Added</h3>
+            <span id="hotels-count-badge" class="count-badge">0</span>
+        </div>
+        <div class="inline-list-scroll">
+            <table class="data-table">
+                <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>City</th>
+                    <th>Country</th>
+                </tr>
+                </thead>
+                <tbody id="hotels-table-body"></tbody>
+            </table>
+        </div>
     </section>
 
     <section id="rooms" class="panel">
@@ -241,14 +250,37 @@
     <section id="guests" class="panel">
         <div class="panel-header">
             <h2>Guests</h2>
+            <button class="secondary-btn" onclick="loadGuests()">Refresh</button>
         </div>
-        <h3>Add Guest</h3>
+
+        <!-- Add Guest form FIRST -->
+        <h3 class="inline-section-title">Add Guest</h3>
         <form class="form-grid form-grid-admin" onsubmit="event.preventDefault(); createGuest();">
             <input type="text" id="guest-name" class="form-input" placeholder="Name" required>
             <input type="email" id="guest-email" class="form-input" placeholder="Email" required>
             <input type="text" id="guest-phone" class="form-input" placeholder="Phone" required>
             <button type="submit" class="primary-btn">Save Guest</button>
         </form>
+
+        <!-- Guests list appears right here after save -->
+        <div class="inline-list-header">
+            <h3 class="inline-section-title" style="margin:0;">Guests Added</h3>
+            <span id="guests-count-badge" class="count-badge">0</span>
+        </div>
+        <div class="inline-list-scroll">
+            <table class="data-table">
+                <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th></th>
+                </tr>
+                </thead>
+                <tbody id="guests-table-body"></tbody>
+            </table>
+        </div>
     </section>
 
     <section id="staff-management" class="panel">

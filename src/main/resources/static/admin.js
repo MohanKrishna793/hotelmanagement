@@ -124,7 +124,7 @@ async function loadBookings() {
 
 let cachedGuests = [];
 
-async function loadGuests() {
+async function loadGuests(flashId) {
     try {
         const token = localStorage.getItem('jwt');
         if (!token) return;
@@ -138,8 +138,41 @@ async function loadGuests() {
         }
         const guests = await res.json();
         cachedGuests = guests;
+
+        // Update stat card
         const stat = document.getElementById('stat-total-guests');
         if (stat) stat.textContent = guests.length;
+
+        // Update count badge
+        const badge = document.getElementById('guests-count-badge');
+        if (badge) badge.textContent = guests.length;
+
+        // Render inline guest list table
+        const tbody = document.getElementById('guests-table-body');
+        if (tbody) {
+            tbody.innerHTML = '';
+            if (guests.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#64748b;padding:16px;">No guests yet</td></tr>';
+            } else {
+                guests.forEach(g => {
+                    const tr = document.createElement('tr');
+                    if (flashId && g.id === flashId) tr.classList.add('row-new');
+                    tr.innerHTML = `
+                        <td>${g.id}</td>
+                        <td>${g.name || '-'}</td>
+                        <td style="word-break:break-all;">${g.email || '-'}</td>
+                        <td>${g.phone || '-'}</td>
+                        <td><button class="danger-btn-sm" onclick="deleteGuest(${g.id})">Remove</button></td>`;
+                    tbody.appendChild(tr);
+                });
+            }
+            // Scroll the new row into view
+            if (flashId) {
+                const newRow = tbody.querySelector('.row-new');
+                if (newRow) newRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        }
+
         populateBookingGuestDropdown(guests);
     } catch (e) {
         const stat = document.getElementById('stat-total-guests');
@@ -640,9 +673,29 @@ async function createGuest() {
         document.getElementById('guest-email').value = '';
         document.getElementById('guest-phone').value = '';
 
-        loadGuestsCount();
+        loadGuests(guest.id);
     } catch (e) {
         console.error(e);
+        showToast(e.message, true);
+    }
+}
+
+async function deleteGuest(guestId) {
+    if (!confirm('Remove this guest? This cannot be undone.')) return;
+    try {
+        const token = localStorage.getItem('jwt');
+        if (!token) { showToast('Please log in first.', true); return; }
+        const res = await fetch(`${API_BASE}/api/guests/${guestId}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.message || 'Failed to remove guest');
+        }
+        showToast('Guest removed');
+        loadGuests();
+    } catch (e) {
         showToast(e.message, true);
     }
 }
@@ -932,7 +985,7 @@ async function createDestination() {
     }
 }
 
-async function loadHotels() {
+async function loadHotels(flashId) {
     try {
         const token = localStorage.getItem('jwt');
         if (!token) return;
@@ -941,14 +994,32 @@ async function loadHotels() {
         });
         if (!res.ok) return;
         const list = await res.json();
+
+        // Update count badge
+        const badge = document.getElementById('hotels-count-badge');
+        if (badge) badge.textContent = list.length;
+
         const tbody = document.getElementById('hotels-table-body');
         if (!tbody) return;
         tbody.innerHTML = '';
+
+        if (list.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#64748b;padding:16px;">No hotels yet</td></tr>';
+            return;
+        }
+
         list.forEach(h => {
             const tr = document.createElement('tr');
-            tr.innerHTML = `<td>${h.id}</td><td>${h.name}</td><td>${h.city}</td><td>${h.country}</td>`;
+            if (flashId && h.id === flashId) tr.classList.add('row-new');
+            tr.innerHTML = `<td>${h.id}</td><td>${h.name}</td><td>${h.city || '-'}</td><td>${h.country || '-'}</td>`;
             tbody.appendChild(tr);
         });
+
+        // Scroll the new row into view
+        if (flashId) {
+            const newRow = tbody.querySelector('.row-new');
+            if (newRow) newRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
     } catch (e) {
         console.error(e);
     }
@@ -979,14 +1050,15 @@ async function createHotel() {
             const err = await res.json().catch(() => ({}));
             throw new Error(err.message || 'Failed to create hotel');
         }
-        showToast('Hotel created');
+        const hotel = await res.json();
+        showToast(`Hotel created (ID: ${hotel.id})`);
         document.getElementById('hotel-name').value = '';
         document.getElementById('hotel-address').value = '';
         document.getElementById('hotel-city').value = '';
         document.getElementById('hotel-country').value = '';
         if (destIdEl) destIdEl.value = '';
         if (basePriceEl) basePriceEl.value = '';
-        loadHotels();
+        loadHotels(hotel.id);
     } catch (e) {
         console.error(e);
         showToast(e.message, true);

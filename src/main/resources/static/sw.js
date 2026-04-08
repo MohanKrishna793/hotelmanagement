@@ -1,4 +1,4 @@
-const CACHE_NAME = "smarthotel-static-v8";
+const CACHE_NAME = "smarthotel-static-v9";
 const ASSETS = [
   "/styles.css",
   "/app.js",
