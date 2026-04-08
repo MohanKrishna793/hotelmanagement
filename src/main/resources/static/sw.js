@@ -1,20 +1,35 @@
-const CACHE_NAME = "smarthotel-static-v9";
+const CACHE_NAME = "smarthotel-static-v10";
+
+// Only cache truly static assets (images, manifest, icons).
+// JS and CSS are loaded with version query params so cache-first is safe for them too.
 const ASSETS = [
-  "/styles.css",
-  "/app.js",
   "/manifest.webmanifest",
   "/icon.svg",
+  "/icon.svg?v=3",
   "/logo-wordmark.svg",
   "/logo-wordmark.svg?v=2",
-  "/icon.svg?v=3",
-  "/my-bookings.html",
-  "/admin.html",
-  "/admin.js"
+  "/styles.css?v=10",
+  "/app.js",
+  "/admin.js?v=10"
 ];
+
+// URLs that should ALWAYS be fetched from the network (never served stale from cache).
+function isNetworkFirst(url) {
+  const u = new URL(url);
+  // HTML pages and versioned JS/CSS go network-first
+  return u.pathname.endsWith(".html") ||
+         u.pathname === "/" ||
+         u.search.startsWith("?v=");
+}
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
+    caches.open(CACHE_NAME).then((cache) => {
+      // Add assets one-by-one; ignore failures so a missing asset doesn't break install
+      return Promise.allSettled(
+        ASSETS.map((url) => cache.add(url).catch((e) => console.warn("SW precache failed:", url, e)))
+      );
+    })
   );
   self.skipWaiting();
 });
@@ -35,20 +50,27 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
 
-  // For HTML/navigation requests, prefer network so mobile gets latest layout quickly.
-  if (event.request.mode === "navigate") {
+  const url = event.request.url;
+
+  // Network-first: HTML pages, versioned assets (?v=X), API calls
+  if (event.request.mode === "navigate" || isNetworkFirst(url)) {
     event.respondWith(
       fetch(event.request)
         .then((response) => {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+          if (response.ok) {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+          }
           return response;
         })
-        .catch(() => caches.match(event.request).then((cached) => cached || caches.match("/index.html")))
+        .catch(() =>
+          caches.match(event.request).then((cached) => cached || caches.match("/index.html"))
+        )
     );
     return;
   }
 
+  // Cache-first for everything else (icons, manifest, etc.)
   event.respondWith(
     caches.match(event.request).then((cached) => {
       if (cached) return cached;

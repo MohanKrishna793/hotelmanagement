@@ -3,8 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <title>Smart Hotel Admin</title>
-    <link rel="stylesheet" href="/styles.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+    <link rel="stylesheet" href="/styles.css?v=10">
+    <!-- Chart.js loaded with multiple fallbacks to handle CDN failures -->
+    <script>
+    window._chartJsLoaded = false;
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"
+            onload="window._chartJsLoaded = true;"
+            onerror="console.warn('Chart.js CDN failed, trying fallback...');
+                     var s=document.createElement('script');
+                     s.src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.2/chart.umd.min.js';
+                     s.onload=function(){window._chartJsLoaded=true;};
+                     document.head.appendChild(s);"></script>
 </head>
 <body>
 <header class="top-nav">
@@ -415,7 +425,7 @@
 
 <div id="toast" class="toast hidden"></div>
 
-<script src="/admin.js"></script>
+<script src="/admin.js?v=10"></script>
 </body>
 </html>
 

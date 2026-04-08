@@ -228,6 +228,21 @@ function loadDashboard() {
 // Track Chart.js instances so we can destroy before re-drawing
 const _chartInstances = {};
 
+/**
+ * Wait up to maxMs for Chart.js to load from CDN (both primary and fallback).
+ * Returns true if Chart is available, false on timeout.
+ */
+function waitForChart(maxMs = 6000) {
+    return new Promise((resolve) => {
+        if (typeof Chart !== 'undefined') { resolve(true); return; }
+        const start = Date.now();
+        const id = setInterval(() => {
+            if (typeof Chart !== 'undefined') { clearInterval(id); resolve(true); return; }
+            if (Date.now() - start > maxMs) { clearInterval(id); resolve(false); }
+        }, 100);
+    });
+}
+
 async function loadReports() {
     const token = localStorage.getItem('jwt');
     if (!token) return;
@@ -235,37 +250,52 @@ async function loadReports() {
     const loadingEl = document.getElementById('charts-loading');
     const errorEl   = document.getElementById('charts-error');
     const gridEl    = document.getElementById('charts-grid');
+
+    // Show loading state, hide previous error
     if (loadingEl) { loadingEl.style.display = 'block'; }
     if (errorEl)   { errorEl.style.display   = 'none'; }
+    if (gridEl)    { gridEl.style.display     = 'none'; }  // hide stale charts while loading
 
     try {
         const months = (document.getElementById('revenue-months') || {}).value || 12;
         const headers = { 'Authorization': 'Bearer ' + token };
 
-        // Fetch dashboard stats (includes statusCounts) and monthly revenue in parallel
-        const [dashRes, revRes] = await Promise.all([
+        // Fetch data AND wait for Chart.js concurrently
+        const [dashRes, revRes, chartReady] = await Promise.all([
             fetch(`${API_BASE}/api/admin/reports/dashboard`, { headers }),
-            fetch(`${API_BASE}/api/admin/reports/revenue?months=${months}`, { headers })
+            fetch(`${API_BASE}/api/admin/reports/revenue?months=${months}`, { headers }),
+            waitForChart(8000)
         ]);
 
-        if (!dashRes.ok || !revRes.ok) throw new Error('API error');
+        if (!dashRes.ok || !revRes.ok) throw new Error('Failed to load report data from server (status ' + dashRes.status + ')');
 
         const dash = await dashRes.json();
         const rev  = await revRes.json();
 
         // Update stat cards
-        const revEl = document.getElementById('stat-revenue');
-        const occEl = document.getElementById('stat-occupancy');
-        const roomEl = document.getElementById('stat-total-rooms');
+        const revEl   = document.getElementById('stat-revenue');
+        const occEl   = document.getElementById('stat-occupancy');
+        const roomEl  = document.getElementById('stat-total-rooms');
         const availEl = document.getElementById('stat-available-rooms');
         const guestEl = document.getElementById('stat-total-guests');
         const bookEl  = document.getElementById('stat-total-bookings');
-        if (revEl)   revEl.textContent   = dash.revenue     != null ? '₹' + Number(dash.revenue).toLocaleString('en-IN', {maximumFractionDigits:0}) : '-';
+        if (revEl)   revEl.textContent   = dash.revenue    != null ? '₹' + Number(dash.revenue).toLocaleString('en-IN', {maximumFractionDigits:0}) : '-';
         if (occEl)   occEl.textContent   = dash.occupancyPercent != null ? dash.occupancyPercent + '%' : '-';
         if (roomEl)  roomEl.textContent  = dash.totalRooms  ?? '-';
         if (availEl) availEl.textContent = dash.availableRooms ?? '-';
         if (guestEl) guestEl.textContent = dash.totalGuests ?? '-';
         if (bookEl)  bookEl.textContent  = dash.activeBookings ?? '-';
+
+        // Hide loading spinner, show chart grid
+        if (loadingEl) loadingEl.style.display = 'none';
+        if (gridEl)    gridEl.style.display    = 'grid';
+
+        // If Chart.js still didn't load, show table fallback instead of crashing
+        if (!chartReady || typeof Chart === 'undefined') {
+            console.warn('[loadReports] Chart.js not available — rendering table fallback');
+            renderReportTableFallback(dash, rev, gridEl);
+            return;
+        }
 
         // ── Chart helpers ────────────────────────────────────────────
         const chartDefaults = {
@@ -439,13 +469,60 @@ async function loadReports() {
             });
         }
 
+        // loadingEl already hidden above after data arrived
         if (loadingEl) loadingEl.style.display = 'none';
 
     } catch (e) {
         console.error('[loadReports]', e);
         if (loadingEl) loadingEl.style.display = 'none';
-        if (errorEl)   errorEl.style.display   = 'block';
+        if (gridEl)    gridEl.style.display    = 'none';
+        if (errorEl) {
+            errorEl.style.display = 'block';
+            errorEl.innerHTML = `<p style="color:#f87171;margin:0 0 6px 0;">&#9888; Failed to load reports: ${e.message}</p>
+                <button class="secondary-btn" onclick="loadReports()" style="margin-top:8px;">Retry</button>`;
+        }
     }
+}
+
+/** Renders a plain HTML table when Chart.js fails to load from CDN. */
+function renderReportTableFallback(dash, rev, container) {
+    if (!container) return;
+    const sc = dash.statusCounts || {};
+    const labels   = rev.labels   || [];
+    const revenues = rev.revenues || [];
+    const counts   = rev.counts   || [];
+
+    let rows = labels.map((lbl, i) =>
+        `<tr><td>${lbl}</td><td>₹${Number(revenues[i]||0).toLocaleString('en-IN',{maximumFractionDigits:0})}</td><td>${counts[i]||0}</td></tr>`
+    ).join('');
+
+    container.innerHTML = `
+      <div class="chart-card" style="grid-column:1/-1">
+        <h3 class="chart-title">Monthly Revenue &amp; Bookings</h3>
+        <table class="data-table" style="margin:0;">
+          <thead><tr><th>Month</th><th>Revenue (₹)</th><th>Bookings</th></tr></thead>
+          <tbody>${rows || '<tr><td colspan="3" style="text-align:center;color:#64748b;">No data yet</td></tr>'}</tbody>
+        </table>
+      </div>
+      <div class="chart-card">
+        <h3 class="chart-title">Booking Status</h3>
+        <table class="data-table" style="margin:0;">
+          <thead><tr><th>Status</th><th>Count</th></tr></thead>
+          <tbody>
+            <tr><td>Active (Booked)</td><td>${sc.BOOKED||0}</td></tr>
+            <tr><td>Checked In</td><td>${sc.CHECKED_IN||0}</td></tr>
+            <tr><td>Completed</td><td>${sc.COMPLETED||0}</td></tr>
+            <tr><td>Cancelled</td><td>${sc.CANCELLED||0}</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="chart-card">
+        <h3 class="chart-title">Note</h3>
+        <p style="color:#94a3b8;font-size:13px;margin:0;">
+          Charts require Chart.js (CDN). It appears the CDN is unavailable in your current
+          network. The data above is complete — only the visual charts are affected.
+        </p>
+      </div>`;
 }
 
 async function loadAuditLogs() {
