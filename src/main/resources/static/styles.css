@@ -857,5 +857,32 @@ a {
         bottom: 92px;
         max-width: calc(100vw - 32px);
     }
+
+    #charts-grid {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+/* ── Chart cards ──────────────────────────────────────────── */
+.chart-card {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 20px 24px;
+}
+
+.chart-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin: 0 0 16px 0;
+}
+
+.chart-wrap {
+    position: relative;
+    height: 260px;
+    width: 100%;
 }
 

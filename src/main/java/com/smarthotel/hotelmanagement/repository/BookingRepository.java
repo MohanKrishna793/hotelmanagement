@@ -37,5 +37,14 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     List<Long> findBookedRoomIdsForHotelInRange(@Param("hotelId") Long hotelId,
                                                 @Param("checkIn") LocalDate checkIn,
                                                 @Param("checkOut") LocalDate checkOut);
+
+    /** Find all active bookings whose check-out date is strictly before today (i.e. expired). */
+    @EntityGraph(attributePaths = {"room", "room.hotel", "guest"})
+    @Query("SELECT b FROM Booking b WHERE b.status IN ('BOOKED', 'CHECKED_IN') AND b.checkOutDate < :today")
+    List<Booking> findExpiredActiveBookings(@Param("today") LocalDate today);
+
+    /** Status count breakdown for charts. */
+    @Query("SELECT b.status, COUNT(b) FROM Booking b GROUP BY b.status")
+    List<Object[]> countByStatus();
 }
 

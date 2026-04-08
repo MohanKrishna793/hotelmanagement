@@ -192,18 +192,227 @@ function loadDashboard() {
     loadAuditLogs();
 }
 
+// Track Chart.js instances so we can destroy before re-drawing
+const _chartInstances = {};
+
 async function loadReports() {
     const token = localStorage.getItem('jwt');
     if (!token) return;
+
+    const loadingEl = document.getElementById('charts-loading');
+    const errorEl   = document.getElementById('charts-error');
+    const gridEl    = document.getElementById('charts-grid');
+    if (loadingEl) { loadingEl.style.display = 'block'; }
+    if (errorEl)   { errorEl.style.display   = 'none'; }
+
     try {
-        const res = await fetch(`${API_BASE}/api/admin/reports/dashboard`, { headers: { 'Authorization': 'Bearer ' + token } });
-        if (!res.ok) return;
-        const data = await res.json();
+        const months = (document.getElementById('revenue-months') || {}).value || 12;
+        const headers = { 'Authorization': 'Bearer ' + token };
+
+        // Fetch dashboard stats (includes statusCounts) and monthly revenue in parallel
+        const [dashRes, revRes] = await Promise.all([
+            fetch(`${API_BASE}/api/admin/reports/dashboard`, { headers }),
+            fetch(`${API_BASE}/api/admin/reports/revenue?months=${months}`, { headers })
+        ]);
+
+        if (!dashRes.ok || !revRes.ok) throw new Error('API error');
+
+        const dash = await dashRes.json();
+        const rev  = await revRes.json();
+
+        // Update stat cards
         const revEl = document.getElementById('stat-revenue');
         const occEl = document.getElementById('stat-occupancy');
-        if (revEl) revEl.textContent = (data.revenue != null ? Number(data.revenue).toFixed(0) : '-');
-        if (occEl) occEl.textContent = (data.occupancyPercent != null ? data.occupancyPercent + '%' : '-');
-    } catch (e) { console.error(e); }
+        const roomEl = document.getElementById('stat-total-rooms');
+        const availEl = document.getElementById('stat-available-rooms');
+        const guestEl = document.getElementById('stat-total-guests');
+        const bookEl  = document.getElementById('stat-total-bookings');
+        if (revEl)   revEl.textContent   = dash.revenue     != null ? '₹' + Number(dash.revenue).toLocaleString('en-IN', {maximumFractionDigits:0}) : '-';
+        if (occEl)   occEl.textContent   = dash.occupancyPercent != null ? dash.occupancyPercent + '%' : '-';
+        if (roomEl)  roomEl.textContent  = dash.totalRooms  ?? '-';
+        if (availEl) availEl.textContent = dash.availableRooms ?? '-';
+        if (guestEl) guestEl.textContent = dash.totalGuests ?? '-';
+        if (bookEl)  bookEl.textContent  = dash.activeBookings ?? '-';
+
+        // ── Chart helpers ────────────────────────────────────────────
+        const chartDefaults = {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { labels: { color: '#94a3b8', font: { size: 12 } } } }
+        };
+        const axisStyle = { color: '#64748b', grid: { color: 'rgba(255,255,255,0.06)' } };
+
+        function destroyChart(id) {
+            if (_chartInstances[id]) { _chartInstances[id].destroy(); delete _chartInstances[id]; }
+        }
+
+        // ── 1. Monthly Revenue Bar Chart ─────────────────────────────
+        destroyChart('revenueChart');
+        const revCtx = document.getElementById('revenueChart');
+        if (revCtx && rev.labels) {
+            _chartInstances['revenueChart'] = new Chart(revCtx, {
+                type: 'bar',
+                data: {
+                    labels: rev.labels,
+                    datasets: [{
+                        label: 'Revenue (₹)',
+                        data: rev.revenues,
+                        backgroundColor: 'rgba(245, 158, 11, 0.75)',
+                        borderColor: '#f59e0b',
+                        borderWidth: 1.5,
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    ...chartDefaults,
+                    scales: {
+                        x: { ticks: axisStyle, grid: axisStyle.grid },
+                        y: {
+                            ticks: { ...axisStyle, callback: v => '₹' + Number(v).toLocaleString('en-IN', {maximumFractionDigits:0}) },
+                            grid: axisStyle.grid
+                        }
+                    },
+                    plugins: {
+                        ...chartDefaults.plugins,
+                        tooltip: {
+                            callbacks: {
+                                label: ctx => ' ₹' + Number(ctx.parsed.y).toLocaleString('en-IN', {maximumFractionDigits:0})
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // ── 2. Booking Status Pie Chart ──────────────────────────────
+        destroyChart('statusChart');
+        const statusCtx = document.getElementById('statusChart');
+        if (statusCtx && dash.statusCounts) {
+            const sc = dash.statusCounts;
+            _chartInstances['statusChart'] = new Chart(statusCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Booked', 'Checked In', 'Completed', 'Cancelled'],
+                    datasets: [{
+                        data: [sc.BOOKED || 0, sc.CHECKED_IN || 0, sc.COMPLETED || 0, sc.CANCELLED || 0],
+                        backgroundColor: ['#3b82f6', '#10b981', '#6366f1', '#ef4444'],
+                        borderColor: '#151c2c',
+                        borderWidth: 2,
+                        hoverOffset: 6
+                    }]
+                },
+                options: {
+                    ...chartDefaults,
+                    cutout: '60%',
+                    plugins: {
+                        ...chartDefaults.plugins,
+                        tooltip: {
+                            callbacks: {
+                                label: ctx => ` ${ctx.label}: ${ctx.parsed} booking(s)`
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // ── 3. Monthly Booking Count Line Chart ──────────────────────
+        destroyChart('countChart');
+        const countCtx = document.getElementById('countChart');
+        if (countCtx && rev.labels) {
+            _chartInstances['countChart'] = new Chart(countCtx, {
+                type: 'line',
+                data: {
+                    labels: rev.labels,
+                    datasets: [{
+                        label: 'Bookings',
+                        data: rev.counts,
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59,130,246,0.15)',
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 4,
+                        pointBackgroundColor: '#3b82f6'
+                    }]
+                },
+                options: {
+                    ...chartDefaults,
+                    scales: {
+                        x: { ticks: axisStyle, grid: axisStyle.grid },
+                        y: { ticks: { ...axisStyle, stepSize: 1 }, grid: axisStyle.grid }
+                    }
+                }
+            });
+        }
+
+        // ── 4. Revenue vs Bookings combo chart ───────────────────────
+        destroyChart('comboChart');
+        const comboCtx = document.getElementById('comboChart');
+        if (comboCtx && rev.labels) {
+            _chartInstances['comboChart'] = new Chart(comboCtx, {
+                data: {
+                    labels: rev.labels,
+                    datasets: [
+                        {
+                            type: 'bar',
+                            label: 'Revenue (₹)',
+                            data: rev.revenues,
+                            backgroundColor: 'rgba(245,158,11,0.6)',
+                            borderColor: '#f59e0b',
+                            borderWidth: 1,
+                            borderRadius: 3,
+                            yAxisID: 'yRev'
+                        },
+                        {
+                            type: 'line',
+                            label: 'Bookings',
+                            data: rev.counts,
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16,185,129,0.1)',
+                            fill: false,
+                            tension: 0.4,
+                            pointRadius: 4,
+                            pointBackgroundColor: '#10b981',
+                            yAxisID: 'yCount'
+                        }
+                    ]
+                },
+                options: {
+                    ...chartDefaults,
+                    scales: {
+                        x: { ticks: axisStyle, grid: axisStyle.grid },
+                        yRev: {
+                            type: 'linear', position: 'left',
+                            ticks: { ...axisStyle, callback: v => '₹' + Number(v).toLocaleString('en-IN', {maximumFractionDigits:0}) },
+                            grid: axisStyle.grid
+                        },
+                        yCount: {
+                            type: 'linear', position: 'right',
+                            ticks: { ...axisStyle, stepSize: 1 },
+                            grid: { display: false }
+                        }
+                    },
+                    plugins: {
+                        ...chartDefaults.plugins,
+                        tooltip: {
+                            callbacks: {
+                                label: ctx => ctx.dataset.label === 'Revenue (₹)'
+                                    ? ` ₹${Number(ctx.parsed.y).toLocaleString('en-IN', {maximumFractionDigits:0})}`
+                                    : ` ${ctx.parsed.y} booking(s)`
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        if (loadingEl) loadingEl.style.display = 'none';
+
+    } catch (e) {
+        console.error('[loadReports]', e);
+        if (loadingEl) loadingEl.style.display = 'none';
+        if (errorEl)   errorEl.style.display   = 'block';
+    }
 }
 
 async function loadAuditLogs() {
@@ -884,5 +1093,9 @@ function bindCreateBookingForm() {
 window.addEventListener('load', () => {
     bindCreateBookingForm();
     checkAdminAccess();
+
+    // Reload charts when months selector changes
+    const monthsSel = document.getElementById('revenue-months');
+    if (monthsSel) monthsSel.addEventListener('change', loadReports);
 });
 

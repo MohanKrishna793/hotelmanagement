@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <title>Smart Hotel Admin</title>
     <link rel="stylesheet" href="/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
 </head>
 <body>
 <header class="top-nav">
@@ -73,10 +74,59 @@
 
 <section id="reports" class="panel panel-full">
     <div class="panel-header">
-        <h2>Reports</h2>
-        <button class="secondary-btn" onclick="loadReports()">Refresh</button>
+        <h2>Reports &amp; Analytics</h2>
+        <div style="display:flex;gap:8px;align-items:center;">
+            <select id="revenue-months" style="padding:6px 10px;border-radius:6px;border:1px solid #444;background:#1e2535;color:#e2e8f0;font-size:13px;">
+                <option value="6">Last 6 Months</option>
+                <option value="12" selected>Last 12 Months</option>
+                <option value="24">Last 24 Months</option>
+            </select>
+            <button class="secondary-btn" onclick="loadReports()">Refresh</button>
+        </div>
     </div>
-    <p id="reports-summary">Revenue and occupancy from confirmed bookings.</p>
+    <p id="reports-summary" style="color:#94a3b8;font-size:13px;margin:0 0 16px 0;">Revenue and booking analytics from confirmed bookings.</p>
+
+    <!-- Chart grid -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:8px;" id="charts-grid">
+        <!-- Revenue bar chart -->
+        <div class="chart-card">
+            <h3 class="chart-title">Monthly Revenue (₹)</h3>
+            <div class="chart-wrap">
+                <canvas id="revenueChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Booking status pie chart -->
+        <div class="chart-card">
+            <h3 class="chart-title">Booking Status Breakdown</h3>
+            <div class="chart-wrap" style="max-height:280px;">
+                <canvas id="statusChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Monthly bookings count line chart -->
+        <div class="chart-card">
+            <h3 class="chart-title">Monthly Booking Count</h3>
+            <div class="chart-wrap">
+                <canvas id="countChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Revenue vs Bookings combined -->
+        <div class="chart-card">
+            <h3 class="chart-title">Revenue vs Bookings (Combined)</h3>
+            <div class="chart-wrap">
+                <canvas id="comboChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div id="charts-loading" style="text-align:center;padding:40px;color:#94a3b8;display:none;">
+        Loading chart data…
+    </div>
+    <div id="charts-error" style="text-align:center;padding:20px;color:#f87171;display:none;">
+        Failed to load report data. Please try refreshing.
+    </div>
 </section>
 
 <section id="audit" class="panel panel-full">
