@@ -1,25 +1,33 @@
-const CACHE_NAME = "smarthotel-static-v11";
+const CACHE_NAME = "smarthotel-static-v12";
 
-// Only cache truly static assets (images, manifest, icons).
-// JS and CSS are loaded with version query params so cache-first is safe for them too.
+// Static assets safe to cache (images, manifest, icons only).
+// admin.html and admin.js are intentionally EXCLUDED — always served from network.
 const ASSETS = [
   "/manifest.webmanifest",
   "/icon.svg",
   "/icon.svg?v=3",
   "/logo-wordmark.svg",
-  "/logo-wordmark.svg?v=2",
-  "/styles.css?v=11",
-  "/app.js",
-  "/admin.js?v=11"
+  "/logo-wordmark.svg?v=2"
 ];
 
-// URLs that should ALWAYS be fetched from the network (never served stale from cache).
+// NEVER cache these — they must always be fresh so charts/features update immediately.
+const NEVER_CACHE = [
+  "/admin.html", "/admin.js", "/styles.css",
+  "/index.html", "/my-bookings.html", "/app.js"
+];
+
+// URLs that should ALWAYS be fetched from the network.
 function isNetworkFirst(url) {
-  const u = new URL(url);
-  // HTML pages and versioned JS/CSS go network-first
-  return u.pathname.endsWith(".html") ||
-         u.pathname === "/" ||
-         u.search.startsWith("?v=");
+  try {
+    const u = new URL(url);
+    // HTML pages, JS files, CSS files, versioned assets, API calls
+    if (u.pathname.endsWith(".html") || u.pathname === "/") return true;
+    if (u.pathname.endsWith(".js")   || u.pathname.endsWith(".css")) return true;
+    if (u.search.startsWith("?v="))  return true;
+    if (u.pathname.startsWith("/api/")) return true;
+    for (const nc of NEVER_CACHE) { if (u.pathname === nc) return true; }
+    return false;
+  } catch { return false; }
 }
 
 self.addEventListener("install", (event) => {

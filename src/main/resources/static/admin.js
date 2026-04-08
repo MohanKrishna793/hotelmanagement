@@ -225,252 +225,344 @@ function loadDashboard() {
     loadAuditLogs();
 }
 
-// Track Chart.js instances so we can destroy before re-drawing
+// ── Chart.js instances registry ─────────────────────────────────────────────
 const _chartInstances = {};
 
-/**
- * Wait up to maxMs for Chart.js to load from CDN (both primary and fallback).
- * Returns true if Chart is available, false on timeout.
- */
-function waitForChart(maxMs = 6000) {
+/** Inject Chart.js dynamically if not already present. Returns a promise. */
+function injectChartJs() {
     return new Promise((resolve) => {
         if (typeof Chart !== 'undefined') { resolve(true); return; }
+        // Try jsDelivr first
+        const s = document.createElement('script');
+        s.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js';
+        s.onload  = () => { resolve(true); };
+        s.onerror = () => {
+            // Fallback to cdnjs
+            const s2 = document.createElement('script');
+            s2.src = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.2/chart.umd.min.js';
+            s2.onload  = () => resolve(true);
+            s2.onerror = () => resolve(false);
+            document.head.appendChild(s2);
+        };
+        document.head.appendChild(s);
+    });
+}
+
+/**
+ * Wait up to maxMs for Chart.js (also triggers injection if not present).
+ */
+function waitForChart(maxMs = 9000) {
+    if (typeof Chart !== 'undefined') return Promise.resolve(true);
+    // Kick off injection in parallel
+    injectChartJs();
+    return new Promise((resolve) => {
         const start = Date.now();
         const id = setInterval(() => {
             if (typeof Chart !== 'undefined') { clearInterval(id); resolve(true); return; }
-            if (Date.now() - start > maxMs) { clearInterval(id); resolve(false); }
-        }, 100);
+            if (Date.now() - start > maxMs)   { clearInterval(id); resolve(false); }
+        }, 150);
     });
+}
+
+/**
+ * Ensure the #reports section has the full chart UI regardless of which admin.html version
+ * the browser has cached.  Called before every loadReports().
+ */
+function ensureReportsUI() {
+    const section = document.getElementById('reports');
+    if (!section) return;
+
+    // Fix title (old HTML has plain "Reports")
+    const h2 = section.querySelector('.panel-header h2');
+    if (h2 && !h2.innerHTML.includes('Analytics')) h2.innerHTML = 'Reports &amp; Analytics';
+
+    // Inject months selector if missing
+    if (!document.getElementById('revenue-months')) {
+        const ph = section.querySelector('.panel-header');
+        if (ph) {
+            const controls = document.createElement('div');
+            controls.style.cssText = 'display:flex;gap:8px;align-items:center;';
+            controls.innerHTML = `
+              <select id="revenue-months" style="padding:6px 10px;border-radius:6px;border:1px solid #444;background:#1e2535;color:#e2e8f0;font-size:13px;">
+                <option value="6">Last 6 Months</option>
+                <option value="12" selected>Last 12 Months</option>
+                <option value="24">Last 24 Months</option>
+              </select>
+              <button class="secondary-btn" onclick="loadReports()">Refresh</button>`;
+            // Replace whatever is in panel-header after h2
+            const existingBtn = ph.querySelector('button');
+            if (existingBtn) existingBtn.remove();
+            ph.appendChild(controls);
+        }
+    }
+
+    // Inject charts grid if missing
+    if (!document.getElementById('charts-grid')) {
+        // Remove old placeholder text if present
+        const oldP = section.querySelector('#reports-summary, p');
+        if (oldP) oldP.style.display = 'none';
+
+        // Inject required chart card CSS inline (in case styles.css is old)
+        if (!document.getElementById('_chartCardStyle')) {
+            const style = document.createElement('style');
+            style.id = '_chartCardStyle';
+            style.textContent = `
+              #charts-grid{display:none;grid-template-columns:1fr 1fr;gap:24px;margin-top:16px;}
+              @media(max-width:768px){#charts-grid{grid-template-columns:1fr!important;}}
+              .chart-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);
+                border-radius:12px;padding:20px 24px;}
+              .chart-title{font-size:13px;font-weight:600;color:#94a3b8;text-transform:uppercase;
+                letter-spacing:.5px;margin:0 0 14px 0;}
+              .chart-wrap{position:relative;height:260px;width:100%;}
+            `;
+            document.head.appendChild(style);
+        }
+
+        const grid = document.createElement('div');
+        grid.id = 'charts-grid';
+        grid.innerHTML = `
+          <div class="chart-card">
+            <p class="chart-title">📊 Monthly Revenue (₹)</p>
+            <div class="chart-wrap"><canvas id="revenueChart"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <p class="chart-title">🎯 Booking Status</p>
+            <div class="chart-wrap" style="max-height:280px;"><canvas id="statusChart"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <p class="chart-title">📈 Monthly Booking Count</p>
+            <div class="chart-wrap"><canvas id="countChart"></canvas></div>
+          </div>
+          <div class="chart-card">
+            <p class="chart-title">🔀 Revenue vs Bookings</p>
+            <div class="chart-wrap"><canvas id="comboChart"></canvas></div>
+          </div>`;
+        section.appendChild(grid);
+
+        const loading = document.createElement('div');
+        loading.id = 'charts-loading';
+        loading.style.cssText = 'text-align:center;padding:40px;color:#94a3b8;display:none;';
+        loading.textContent = 'Loading charts…';
+        section.appendChild(loading);
+
+        const errDiv = document.createElement('div');
+        errDiv.id = 'charts-error';
+        errDiv.style.cssText = 'text-align:center;padding:20px;color:#f87171;display:none;';
+        section.appendChild(errDiv);
+    }
 }
 
 async function loadReports() {
     const token = localStorage.getItem('jwt');
     if (!token) return;
 
+    // Always ensure chart DOM exists — works even with old cached admin.html
+    ensureReportsUI();
+
     const loadingEl = document.getElementById('charts-loading');
     const errorEl   = document.getElementById('charts-error');
     const gridEl    = document.getElementById('charts-grid');
 
-    // Show loading state, hide previous error
     if (loadingEl) { loadingEl.style.display = 'block'; }
-    if (errorEl)   { errorEl.style.display   = 'none'; }
-    if (gridEl)    { gridEl.style.display     = 'none'; }  // hide stale charts while loading
+    if (errorEl)   { errorEl.style.display   = 'none';  errorEl.innerHTML = ''; }
+    if (gridEl)    { gridEl.style.display     = 'none'; }
 
     try {
-        const months = (document.getElementById('revenue-months') || {}).value || 12;
+        const months  = (document.getElementById('revenue-months') || {}).value || 12;
         const headers = { 'Authorization': 'Bearer ' + token };
 
-        // Fetch data AND wait for Chart.js concurrently
         const [dashRes, revRes, chartReady] = await Promise.all([
             fetch(`${API_BASE}/api/admin/reports/dashboard`, { headers }),
             fetch(`${API_BASE}/api/admin/reports/revenue?months=${months}`, { headers }),
-            waitForChart(8000)
+            waitForChart(9000)
         ]);
 
-        if (!dashRes.ok || !revRes.ok) throw new Error('Failed to load report data from server (status ' + dashRes.status + ')');
+        if (!dashRes.ok || !revRes.ok)
+            throw new Error('Server error (' + (dashRes.ok ? revRes.status : dashRes.status) + ')');
 
         const dash = await dashRes.json();
         const rev  = await revRes.json();
 
-        // Update stat cards
-        const revEl   = document.getElementById('stat-revenue');
-        const occEl   = document.getElementById('stat-occupancy');
-        const roomEl  = document.getElementById('stat-total-rooms');
-        const availEl = document.getElementById('stat-available-rooms');
-        const guestEl = document.getElementById('stat-total-guests');
-        const bookEl  = document.getElementById('stat-total-bookings');
-        if (revEl)   revEl.textContent   = dash.revenue    != null ? '₹' + Number(dash.revenue).toLocaleString('en-IN', {maximumFractionDigits:0}) : '-';
-        if (occEl)   occEl.textContent   = dash.occupancyPercent != null ? dash.occupancyPercent + '%' : '-';
-        if (roomEl)  roomEl.textContent  = dash.totalRooms  ?? '-';
-        if (availEl) availEl.textContent = dash.availableRooms ?? '-';
-        if (guestEl) guestEl.textContent = dash.totalGuests ?? '-';
-        if (bookEl)  bookEl.textContent  = dash.activeBookings ?? '-';
+        // ── Update stat cards ────────────────────────────────────────
+        const fmt = (n) => '₹' + Number(n).toLocaleString('en-IN', { maximumFractionDigits: 0 });
+        const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+        setEl('stat-revenue',         dash.revenue          != null ? fmt(dash.revenue) : '-');
+        setEl('stat-occupancy',        dash.occupancyPercent != null ? dash.occupancyPercent + '%' : '-');
+        setEl('stat-total-rooms',      dash.totalRooms       ?? '-');
+        setEl('stat-available-rooms',  dash.availableRooms   ?? '-');
+        setEl('stat-total-guests',     dash.totalGuests      ?? '-');
+        setEl('stat-total-bookings',   dash.activeBookings   ?? '-');
 
-        // Hide loading spinner, show chart grid
         if (loadingEl) loadingEl.style.display = 'none';
         if (gridEl)    gridEl.style.display    = 'grid';
 
-        // If Chart.js still didn't load, show table fallback instead of crashing
         if (!chartReady || typeof Chart === 'undefined') {
-            console.warn('[loadReports] Chart.js not available — rendering table fallback');
-            renderReportTableFallback(dash, rev, gridEl);
+            _renderReportTables(dash, rev, gridEl);
             return;
         }
 
-        // ── Chart helpers ────────────────────────────────────────────
-        const chartDefaults = {
+        // ── Chart shared config ──────────────────────────────────────
+        const DARK = '#94a3b8';
+        const GRID = 'rgba(255,255,255,0.07)';
+        const base = {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { legend: { labels: { color: '#94a3b8', font: { size: 12 } } } }
+            plugins: {
+                legend: { labels: { color: DARK, font: { size: 12 }, boxWidth: 14 } }
+            }
         };
-        const axisStyle = { color: '#64748b', grid: { color: 'rgba(255,255,255,0.06)' } };
+        const xAxis = { ticks: { color: DARK }, grid: { color: GRID } };
+        const yAxis = { ticks: { color: DARK }, grid: { color: GRID } };
 
-        function destroyChart(id) {
+        function kill(id) {
             if (_chartInstances[id]) { _chartInstances[id].destroy(); delete _chartInstances[id]; }
         }
 
-        // ── 1. Monthly Revenue Bar Chart ─────────────────────────────
-        destroyChart('revenueChart');
-        const revCtx = document.getElementById('revenueChart');
-        if (revCtx && rev.labels) {
-            _chartInstances['revenueChart'] = new Chart(revCtx, {
+        // ── 1. Monthly Revenue — Gradient bar ────────────────────────
+        kill('revenueChart');
+        const rCtx = document.getElementById('revenueChart');
+        if (rCtx) {
+            const grd = rCtx.getContext('2d').createLinearGradient(0, 0, 0, 260);
+            grd.addColorStop(0,   'rgba(245,158,11,0.90)');
+            grd.addColorStop(1,   'rgba(245,158,11,0.20)');
+            _chartInstances['revenueChart'] = new Chart(rCtx, {
                 type: 'bar',
                 data: {
-                    labels: rev.labels,
+                    labels: rev.labels || [],
                     datasets: [{
                         label: 'Revenue (₹)',
-                        data: rev.revenues,
-                        backgroundColor: 'rgba(245, 158, 11, 0.75)',
+                        data: rev.revenues || [],
+                        backgroundColor: grd,
                         borderColor: '#f59e0b',
                         borderWidth: 1.5,
-                        borderRadius: 4
+                        borderRadius: 6,
+                        borderSkipped: false
                     }]
                 },
                 options: {
-                    ...chartDefaults,
+                    ...base,
                     scales: {
-                        x: { ticks: axisStyle, grid: axisStyle.grid },
-                        y: {
-                            ticks: { ...axisStyle, callback: v => '₹' + Number(v).toLocaleString('en-IN', {maximumFractionDigits:0}) },
-                            grid: axisStyle.grid
-                        }
+                        x: xAxis,
+                        y: { ...yAxis, ticks: { ...yAxis.ticks,
+                            callback: v => '₹' + Number(v).toLocaleString('en-IN', {maximumFractionDigits:0}) } }
                     },
-                    plugins: {
-                        ...chartDefaults.plugins,
-                        tooltip: {
-                            callbacks: {
-                                label: ctx => ' ₹' + Number(ctx.parsed.y).toLocaleString('en-IN', {maximumFractionDigits:0})
-                            }
-                        }
+                    plugins: { ...base.plugins,
+                        tooltip: { callbacks: { label: c => ' ₹' + Number(c.parsed.y).toLocaleString('en-IN',{maximumFractionDigits:0}) } }
                     }
                 }
             });
         }
 
-        // ── 2. Booking Status Pie Chart ──────────────────────────────
-        destroyChart('statusChart');
-        const statusCtx = document.getElementById('statusChart');
-        if (statusCtx && dash.statusCounts) {
+        // ── 2. Booking Status — Rich doughnut ────────────────────────
+        kill('statusChart');
+        const sCtx = document.getElementById('statusChart');
+        if (sCtx && dash.statusCounts) {
             const sc = dash.statusCounts;
-            _chartInstances['statusChart'] = new Chart(statusCtx, {
+            _chartInstances['statusChart'] = new Chart(sCtx, {
                 type: 'doughnut',
                 data: {
                     labels: ['Booked', 'Checked In', 'Completed', 'Cancelled'],
                     datasets: [{
-                        data: [sc.BOOKED || 0, sc.CHECKED_IN || 0, sc.COMPLETED || 0, sc.CANCELLED || 0],
-                        backgroundColor: ['#3b82f6', '#10b981', '#6366f1', '#ef4444'],
-                        borderColor: '#151c2c',
+                        data: [sc.BOOKED||0, sc.CHECKED_IN||0, sc.COMPLETED||0, sc.CANCELLED||0],
+                        backgroundColor: ['#3b82f6','#10b981','#8b5cf6','#ef4444'],
+                        borderColor:     ['#1d4ed8','#059669','#6d28d9','#dc2626'],
                         borderWidth: 2,
-                        hoverOffset: 6
+                        hoverOffset: 10
                     }]
                 },
                 options: {
-                    ...chartDefaults,
-                    cutout: '60%',
-                    plugins: {
-                        ...chartDefaults.plugins,
-                        tooltip: {
-                            callbacks: {
-                                label: ctx => ` ${ctx.label}: ${ctx.parsed} booking(s)`
-                            }
-                        }
+                    ...base, cutout: '62%',
+                    plugins: { ...base.plugins,
+                        tooltip: { callbacks: { label: c => ` ${c.label}: ${c.parsed}` } }
                     }
                 }
             });
         }
 
-        // ── 3. Monthly Booking Count Line Chart ──────────────────────
-        destroyChart('countChart');
-        const countCtx = document.getElementById('countChart');
-        if (countCtx && rev.labels) {
-            _chartInstances['countChart'] = new Chart(countCtx, {
+        // ── 3. Monthly Bookings — Area line ──────────────────────────
+        kill('countChart');
+        const cCtx = document.getElementById('countChart');
+        if (cCtx) {
+            const grd2 = cCtx.getContext('2d').createLinearGradient(0, 0, 0, 260);
+            grd2.addColorStop(0,  'rgba(99,102,241,0.45)');
+            grd2.addColorStop(1,  'rgba(99,102,241,0.02)');
+            _chartInstances['countChart'] = new Chart(cCtx, {
                 type: 'line',
                 data: {
-                    labels: rev.labels,
+                    labels: rev.labels || [],
                     datasets: [{
                         label: 'Bookings',
-                        data: rev.counts,
-                        borderColor: '#3b82f6',
-                        backgroundColor: 'rgba(59,130,246,0.15)',
+                        data: rev.counts || [],
+                        borderColor: '#818cf8',
+                        backgroundColor: grd2,
                         fill: true,
-                        tension: 0.4,
-                        pointRadius: 4,
-                        pointBackgroundColor: '#3b82f6'
+                        tension: 0.45,
+                        pointRadius: 5,
+                        pointBackgroundColor: '#818cf8',
+                        pointBorderColor: '#1e1b4b',
+                        pointBorderWidth: 2
                     }]
                 },
                 options: {
-                    ...chartDefaults,
-                    scales: {
-                        x: { ticks: axisStyle, grid: axisStyle.grid },
-                        y: { ticks: { ...axisStyle, stepSize: 1 }, grid: axisStyle.grid }
-                    }
+                    ...base,
+                    scales: { x: xAxis, y: { ...yAxis, ticks: { ...yAxis.ticks, stepSize: 1 } } }
                 }
             });
         }
 
-        // ── 4. Revenue vs Bookings combo chart ───────────────────────
-        destroyChart('comboChart');
-        const comboCtx = document.getElementById('comboChart');
-        if (comboCtx && rev.labels) {
-            _chartInstances['comboChart'] = new Chart(comboCtx, {
+        // ── 4. Revenue vs Bookings — Combo ───────────────────────────
+        kill('comboChart');
+        const mCtx = document.getElementById('comboChart');
+        if (mCtx) {
+            _chartInstances['comboChart'] = new Chart(mCtx, {
                 data: {
-                    labels: rev.labels,
+                    labels: rev.labels || [],
                     datasets: [
                         {
-                            type: 'bar',
-                            label: 'Revenue (₹)',
-                            data: rev.revenues,
-                            backgroundColor: 'rgba(245,158,11,0.6)',
-                            borderColor: '#f59e0b',
-                            borderWidth: 1,
-                            borderRadius: 3,
+                            type: 'bar', label: 'Revenue (₹)',
+                            data: rev.revenues || [],
+                            backgroundColor: 'rgba(245,158,11,0.70)',
+                            borderColor: '#fbbf24', borderWidth: 1, borderRadius: 4,
                             yAxisID: 'yRev'
                         },
                         {
-                            type: 'line',
-                            label: 'Bookings',
-                            data: rev.counts,
-                            borderColor: '#10b981',
-                            backgroundColor: 'rgba(16,185,129,0.1)',
-                            fill: false,
-                            tension: 0.4,
-                            pointRadius: 4,
-                            pointBackgroundColor: '#10b981',
+                            type: 'line', label: 'Bookings',
+                            data: rev.counts || [],
+                            borderColor: '#34d399',
+                            backgroundColor: 'rgba(52,211,153,0.12)',
+                            fill: true, tension: 0.4,
+                            pointRadius: 5,
+                            pointBackgroundColor: '#34d399',
+                            pointBorderColor: '#064e3b', pointBorderWidth: 2,
                             yAxisID: 'yCount'
                         }
                     ]
                 },
                 options: {
-                    ...chartDefaults,
+                    ...base,
                     scales: {
-                        x: { ticks: axisStyle, grid: axisStyle.grid },
+                        x: xAxis,
                         yRev: {
                             type: 'linear', position: 'left',
-                            ticks: { ...axisStyle, callback: v => '₹' + Number(v).toLocaleString('en-IN', {maximumFractionDigits:0}) },
-                            grid: axisStyle.grid
+                            ticks: { color: DARK, callback: v => '₹' + Number(v).toLocaleString('en-IN',{maximumFractionDigits:0}) },
+                            grid: { color: GRID }
                         },
                         yCount: {
                             type: 'linear', position: 'right',
-                            ticks: { ...axisStyle, stepSize: 1 },
+                            ticks: { color: DARK, stepSize: 1 },
                             grid: { display: false }
                         }
                     },
-                    plugins: {
-                        ...chartDefaults.plugins,
-                        tooltip: {
-                            callbacks: {
-                                label: ctx => ctx.dataset.label === 'Revenue (₹)'
-                                    ? ` ₹${Number(ctx.parsed.y).toLocaleString('en-IN', {maximumFractionDigits:0})}`
-                                    : ` ${ctx.parsed.y} booking(s)`
-                            }
-                        }
+                    plugins: { ...base.plugins,
+                        tooltip: { callbacks: { label: c =>
+                            c.dataset.label === 'Revenue (₹)'
+                                ? ' ₹' + Number(c.parsed.y).toLocaleString('en-IN',{maximumFractionDigits:0})
+                                : ` ${c.parsed.y} bookings`
+                        }}
                     }
                 }
             });
         }
-
-        // loadingEl already hidden above after data arrived
-        if (loadingEl) loadingEl.style.display = 'none';
 
     } catch (e) {
         console.error('[loadReports]', e);
@@ -478,50 +570,36 @@ async function loadReports() {
         if (gridEl)    gridEl.style.display    = 'none';
         if (errorEl) {
             errorEl.style.display = 'block';
-            errorEl.innerHTML = `<p style="color:#f87171;margin:0 0 6px 0;">&#9888; Failed to load reports: ${e.message}</p>
-                <button class="secondary-btn" onclick="loadReports()" style="margin-top:8px;">Retry</button>`;
+            errorEl.innerHTML = `<p style="margin:0 0 8px 0;">&#9888; ${e.message}</p>
+                <button class="secondary-btn" onclick="loadReports()">Retry</button>`;
         }
     }
 }
 
-/** Renders a plain HTML table when Chart.js fails to load from CDN. */
-function renderReportTableFallback(dash, rev, container) {
+/** Plain-table fallback when Chart.js CDN is completely blocked. */
+function _renderReportTables(dash, rev, container) {
     if (!container) return;
-    const sc = dash.statusCounts || {};
-    const labels   = rev.labels   || [];
-    const revenues = rev.revenues || [];
-    const counts   = rev.counts   || [];
-
-    let rows = labels.map((lbl, i) =>
-        `<tr><td>${lbl}</td><td>₹${Number(revenues[i]||0).toLocaleString('en-IN',{maximumFractionDigits:0})}</td><td>${counts[i]||0}</td></tr>`
-    ).join('');
+    const sc  = dash.statusCounts || {};
+    const fmt = v => '₹' + Number(v||0).toLocaleString('en-IN',{maximumFractionDigits:0});
+    const rows = (rev.labels||[]).map((lbl,i)=>
+        `<tr><td>${lbl}</td><td>${fmt(rev.revenues[i])}</td><td>${rev.counts[i]||0}</td></tr>`
+    ).join('') || '<tr><td colspan="3" style="text-align:center;color:#64748b">No data yet</td></tr>';
 
     container.innerHTML = `
       <div class="chart-card" style="grid-column:1/-1">
-        <h3 class="chart-title">Monthly Revenue &amp; Bookings</h3>
-        <table class="data-table" style="margin:0;">
-          <thead><tr><th>Month</th><th>Revenue (₹)</th><th>Bookings</th></tr></thead>
-          <tbody>${rows || '<tr><td colspan="3" style="text-align:center;color:#64748b;">No data yet</td></tr>'}</tbody>
-        </table>
+        <p class="chart-title">Monthly Revenue &amp; Bookings</p>
+        <table class="data-table" style="margin:0"><thead><tr><th>Month</th><th>Revenue</th><th>Bookings</th></tr></thead>
+        <tbody>${rows}</tbody></table>
       </div>
       <div class="chart-card">
-        <h3 class="chart-title">Booking Status</h3>
-        <table class="data-table" style="margin:0;">
-          <thead><tr><th>Status</th><th>Count</th></tr></thead>
-          <tbody>
-            <tr><td>Active (Booked)</td><td>${sc.BOOKED||0}</td></tr>
-            <tr><td>Checked In</td><td>${sc.CHECKED_IN||0}</td></tr>
-            <tr><td>Completed</td><td>${sc.COMPLETED||0}</td></tr>
-            <tr><td>Cancelled</td><td>${sc.CANCELLED||0}</td></tr>
-          </tbody>
-        </table>
-      </div>
-      <div class="chart-card">
-        <h3 class="chart-title">Note</h3>
-        <p style="color:#94a3b8;font-size:13px;margin:0;">
-          Charts require Chart.js (CDN). It appears the CDN is unavailable in your current
-          network. The data above is complete — only the visual charts are affected.
-        </p>
+        <p class="chart-title">Booking Status</p>
+        <table class="data-table" style="margin:0"><thead><tr><th>Status</th><th>Count</th></tr></thead>
+        <tbody>
+          <tr><td>🔵 Booked</td><td>${sc.BOOKED||0}</td></tr>
+          <tr><td>🟢 Checked In</td><td>${sc.CHECKED_IN||0}</td></tr>
+          <tr><td>🟣 Completed</td><td>${sc.COMPLETED||0}</td></tr>
+          <tr><td>🔴 Cancelled</td><td>${sc.CANCELLED||0}</td></tr>
+        </tbody></table>
       </div>`;
 }
 
