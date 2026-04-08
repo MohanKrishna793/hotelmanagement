@@ -49,6 +49,14 @@ public class HotelService {
         return hotelRepository.findAll();
     }
 
+    public boolean existsById(Long id) {
+        return hotelRepository.existsById(id);
+    }
+
+    public void deleteHotel(Long id) {
+        hotelRepository.deleteById(id);
+    }
+
     public List<Hotel> findHotelsByDestination(Long destinationId) {
         Destination destination = destinationRepository.findById(destinationId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Destination not found"));

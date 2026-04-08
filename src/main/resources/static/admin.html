@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Smart Hotel Admin</title>
-    <link rel="stylesheet" href="/styles.css?v=10">
+    <link rel="stylesheet" href="/styles.css?v=11">
     <!-- Chart.js loaded with multiple fallbacks to handle CDN failures -->
     <script>
     window._chartJsLoaded = false;
@@ -156,19 +156,8 @@
             <h2>Destinations</h2>
             <button class="secondary-btn" onclick="loadDestinations()">Refresh</button>
         </div>
-        <table class="data-table">
-            <thead>
-            <tr>
-                <th>ID</th>
-                <th>Name</th>
-                <th>City</th>
-                <th>Country</th>
-            </tr>
-            </thead>
-            <tbody id="destinations-table-body">
-            </tbody>
-        </table>
-        <h3>Add Destination</h3>
+
+        <h3 class="inline-section-title">Add Destination</h3>
         <form class="form-grid form-grid-admin" onsubmit="event.preventDefault(); createDestination();">
             <input type="text" id="dest-name" class="form-input" placeholder="Name" required>
             <input type="text" id="dest-city" class="form-input" placeholder="City" required>
@@ -176,6 +165,25 @@
             <input type="text" id="dest-description" class="form-input" placeholder="Description">
             <button type="submit" class="primary-btn">Save Destination</button>
         </form>
+
+        <div class="inline-list-header">
+            <h3 class="inline-section-title" style="margin:0;">Destinations Added</h3>
+            <span id="destinations-count-badge" class="count-badge">0</span>
+        </div>
+        <div class="inline-list-scroll">
+            <table class="data-table">
+                <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>State / Name</th>
+                    <th>City</th>
+                    <th>Country</th>
+                    <th></th>
+                </tr>
+                </thead>
+                <tbody id="destinations-table-body"></tbody>
+            </table>
+        </div>
     </section>
 
     <section id="hotels" class="panel">
@@ -211,6 +219,7 @@
                     <th>Name</th>
                     <th>City</th>
                     <th>Country</th>
+                    <th></th>
                 </tr>
                 </thead>
                 <tbody id="hotels-table-body"></tbody>
@@ -425,7 +434,7 @@
 
 <div id="toast" class="toast hidden"></div>
 
-<script src="/admin.js?v=10"></script>
+<script src="/admin.js?v=11"></script>
 </body>
 </html>
 

@@ -7,11 +7,14 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Map;
@@ -38,6 +41,15 @@ public class AdminHotelController {
      * Resets all hotel images to the default placeholder (no external API).
      * Use this to fix hotels that had irrelevant images; runs in background.
      */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Map<String, Object>> delete(@PathVariable Long id) {
+        if (!hotelService.existsById(id)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Hotel not found");
+        }
+        hotelService.deleteHotel(id);
+        return ResponseEntity.ok(Map.of("message", "Hotel removed", "id", id));
+    }
+
     @PostMapping("/refresh-images")
     public ResponseEntity<?> refreshImages() {
         long count = hotelService.getAllHotels().size();

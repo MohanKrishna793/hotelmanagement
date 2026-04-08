@@ -995,7 +995,7 @@ async function createBooking() {
     }
 }
 
-async function loadDestinations() {
+async function loadDestinations(flashId) {
     try {
         const token = localStorage.getItem('jwt');
         if (!token) return;
@@ -1004,14 +1004,37 @@ async function loadDestinations() {
         });
         if (!res.ok) return;
         const list = await res.json();
+
+        // Update count badge
+        const badge = document.getElementById('destinations-count-badge');
+        if (badge) badge.textContent = list.length;
+
+        // Render inline destinations list
         const tbody = document.getElementById('destinations-table-body');
-        if (!tbody) return;
-        tbody.innerHTML = '';
-        list.forEach(d => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `<td>${d.id}</td><td>${d.name}</td><td>${d.city}</td><td>${d.country}</td>`;
-            tbody.appendChild(tr);
-        });
+        if (tbody) {
+            tbody.innerHTML = '';
+            if (list.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#64748b;padding:16px;">No destinations yet</td></tr>';
+            } else {
+                list.forEach(d => {
+                    const tr = document.createElement('tr');
+                    if (flashId && d.id === flashId) tr.classList.add('row-new');
+                    tr.innerHTML = `
+                        <td>${d.id}</td>
+                        <td>${d.name || '-'}</td>
+                        <td>${d.city || '-'}</td>
+                        <td>${d.country || '-'}</td>
+                        <td><button class="danger-btn-sm" onclick="deleteDestination(${d.id})">Remove</button></td>`;
+                    tbody.appendChild(tr);
+                });
+                if (flashId) {
+                    const newRow = tbody.querySelector('.row-new');
+                    if (newRow) newRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }
+            }
+        }
+
+        // Also keep the hotel-destination dropdown in sync
         const destSelect = document.getElementById('hotel-destination-id');
         if (destSelect) {
             const cur = destSelect.value;
@@ -1019,7 +1042,7 @@ async function loadDestinations() {
             list.forEach(d => {
                 const opt = document.createElement('option');
                 opt.value = d.id;
-                opt.textContent = `${d.name} (${d.city})`;
+                opt.textContent = `${d.name} (${d.city || d.country || ''})`;
                 destSelect.appendChild(opt);
             });
             if (cur) destSelect.value = cur;
@@ -1050,14 +1073,35 @@ async function createDestination() {
             const err = await res.json().catch(() => ({}));
             throw new Error(err.message || 'Failed to create destination');
         }
-        showToast('Destination created');
+        const dest = await res.json();
+        showToast(`Destination created (ID: ${dest.id})`);
         document.getElementById('dest-name').value = '';
         document.getElementById('dest-city').value = '';
         document.getElementById('dest-country').value = '';
         document.getElementById('dest-description').value = '';
-        loadDestinations();
+        loadDestinations(dest.id);
     } catch (e) {
         console.error(e);
+        showToast(e.message, true);
+    }
+}
+
+async function deleteDestination(destId) {
+    if (!confirm('Remove this destination? Hotels linked to it will be unlinked.')) return;
+    try {
+        const token = localStorage.getItem('jwt');
+        if (!token) { showToast('Please log in first.', true); return; }
+        const res = await fetch(`${API_BASE}/api/admin/destinations/${destId}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.message || 'Failed to remove destination');
+        }
+        showToast('Destination removed');
+        loadDestinations();
+    } catch (e) {
         showToast(e.message, true);
     }
 }
@@ -1081,14 +1125,19 @@ async function loadHotels(flashId) {
         tbody.innerHTML = '';
 
         if (list.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#64748b;padding:16px;">No hotels yet</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#64748b;padding:16px;">No hotels yet</td></tr>';
             return;
         }
 
         list.forEach(h => {
             const tr = document.createElement('tr');
             if (flashId && h.id === flashId) tr.classList.add('row-new');
-            tr.innerHTML = `<td>${h.id}</td><td>${h.name}</td><td>${h.city || '-'}</td><td>${h.country || '-'}</td>`;
+            tr.innerHTML = `
+                <td>${h.id}</td>
+                <td>${h.name || '-'}</td>
+                <td>${h.city || '-'}</td>
+                <td>${h.country || '-'}</td>
+                <td><button class="danger-btn-sm" onclick="deleteHotel(${h.id})">Remove</button></td>`;
             tbody.appendChild(tr);
         });
 
@@ -1138,6 +1187,26 @@ async function createHotel() {
         loadHotels(hotel.id);
     } catch (e) {
         console.error(e);
+        showToast(e.message, true);
+    }
+}
+
+async function deleteHotel(hotelId) {
+    if (!confirm('Remove this hotel? All its rooms and links will also be removed.')) return;
+    try {
+        const token = localStorage.getItem('jwt');
+        if (!token) { showToast('Please log in first.', true); return; }
+        const res = await fetch(`${API_BASE}/api/admin/hotels/${hotelId}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.message || 'Failed to remove hotel');
+        }
+        showToast('Hotel removed');
+        loadHotels();
+    } catch (e) {
         showToast(e.message, true);
     }
 }

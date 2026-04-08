@@ -5,7 +5,10 @@ import com.smarthotel.hotelmanagement.repository.DestinationRepository;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -13,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/admin/destinations")
@@ -27,6 +31,15 @@ public class AdminDestinationController {
     @GetMapping
     public List<Destination> getAll() {
         return destinationRepository.findAll();
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Map<String, Object>> delete(@PathVariable Long id) {
+        if (!destinationRepository.existsById(id)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Destination not found");
+        }
+        destinationRepository.deleteById(id);
+        return ResponseEntity.ok(Map.of("message", "Destination removed", "id", id));
     }
 
     @PostMapping

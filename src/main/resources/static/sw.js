@@ -1,4 +1,4 @@
-const CACHE_NAME = "smarthotel-static-v10";
+const CACHE_NAME = "smarthotel-static-v11";
 
 // Only cache truly static assets (images, manifest, icons).
 // JS and CSS are loaded with version query params so cache-first is safe for them too.
@@ -8,9 +8,9 @@ const ASSETS = [
   "/icon.svg?v=3",
   "/logo-wordmark.svg",
   "/logo-wordmark.svg?v=2",
-  "/styles.css?v=10",
+  "/styles.css?v=11",
   "/app.js",
-  "/admin.js?v=10"
+  "/admin.js?v=11"
 ];
 
 // URLs that should ALWAYS be fetched from the network (never served stale from cache).
